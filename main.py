@@ -1,0 +1,280 @@
+"""
+Polymarket Multi-Bot — Main Orchestrator
+Launches up to 7 bots as independent parallel async tasks.
+Shared feeds, independent decisions, independent databases.
+"""
+
+import asyncio
+import logging
+import signal
+import sys
+import time
+from config import (
+    PAPER_TRADING, LIVE_CONFLICT_RULE, LOG_LEVEL, 
+    BOT_A_ENABLED, BOT_B_ENABLED, BOT_C_ENABLED, BOT_D_ENABLED, 
+    BOT_E_ENABLED, BOT_F_ENABLED, BOT_G_ENABLED,
+    BOT_A_BANKROLL, BOT_B_BANKROLL, BOT_C_BANKROLL, BOT_D_BANKROLL,
+    BOT_E_BANKROLL, BOT_F_BANKROLL, BOT_G_BANKROLL, validate,
+)
+from feeds.binance_ws import BinanceFeed
+from feeds.chainlink import ChainlinkFeed
+from feeds.polymarket import PolymarketFeed
+from bots.bot_a import BotA
+from bots.bot_b import BotB
+from bots.bot_c import BotC
+from bots.bot_d import BotD
+from bots.bot_e import BotE
+from bots.bot_f import BotF
+from bots.bot_g import BotG
+from execution.redeemer import Redeemer
+from risk.manager import GlobalRiskManager
+from risk.polymarket_api import PolymarketAPIClient
+from analytics.comparison import print_comparison
+
+import os
+from logging.handlers import RotatingFileHandler
+
+os.makedirs("logs", exist_ok=True)
+
+# Global Formatter for both Console and Error files
+log_formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+
+# 1. Console Handler (Standard Output)
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setFormatter(log_formatter)
+
+# 2. Dedicated Error File Handler (Rotates at 10MB to prevent disk overflow)
+error_file_handler = RotatingFileHandler("logs/errors.log", maxBytes=10*1024*1024, backupCount=5)
+error_file_handler.setLevel(logging.ERROR)
+error_file_handler.setFormatter(
+    logging.Formatter("%(asctime)s [%(levelname)s] %(name)s [Line: %(lineno)d] %(funcName)s():\n%(message)s\n")
+)
+
+logging.basicConfig(
+    level=getattr(logging, LOG_LEVEL),
+    handlers=[console_handler, error_file_handler],
+)
+logger = logging.getLogger(__name__)
+
+
+class Orchestrator:
+
+    def __init__(self):
+        self.binance   = BinanceFeed()
+        self.chainlink = None  # Initialized in run()
+        self.poly      = PolymarketFeed()
+        self.bots      = {}      # bot_id -> instance
+        self.bot_tasks = []
+        self._running  = False
+        self.global_risk = None
+        
+        # Initialize Polymarket API client for live trading
+        self.polymarket_client = None
+        self.wallet_address = None
+        if not PAPER_TRADING:
+            import config
+            if (config.POLYMARKET_API_KEY and config.POLYMARKET_API_SECRET and 
+                config.POLYMARKET_PRIVATE_KEY and config.POLYMARKET_FUNDER_ADDRESS):
+                self.polymarket_client = PolymarketAPIClient(
+                    api_key=config.POLYMARKET_API_KEY,
+                    api_secret=config.POLYMARKET_API_SECRET,
+                    api_passphrase=config.POLYMARKET_PASSPHRASE,
+                    private_key=config.POLYMARKET_PRIVATE_KEY,
+                    funder_address=config.POLYMARKET_FUNDER_ADDRESS
+                )
+                self.wallet_address = config.POLYMARKET_FUNDER_ADDRESS
+                logger.info("Polymarket API client initialized for live trading")
+            else:
+                logger.warning("Live trading credentials missing - falling back to paper mode logic")
+
+    async def run(self):
+        logger.info("=" * 60)
+        logger.info("Polymarket Orchestrator | mode=%s",
+                    "PAPER" if PAPER_TRADING else "LIVE")
+        
+        # Bot Registry: (BotClass, enabled_flag, bot_id)
+        # Note: Bots C-G will be added here as they are implemented
+        registry = [
+            (BotA, BOT_A_ENABLED, "A"),
+            (BotB, BOT_B_ENABLED, "B"),
+            (BotC, BOT_C_ENABLED, "C"),
+            (BotD, BOT_D_ENABLED, "D"),
+            (BotE, BOT_E_ENABLED, "E"),
+            (BotF, BOT_F_ENABLED, "F"),
+            (BotG, BOT_G_ENABLED, "G"),
+        ]
+        
+        active_registry = [r for r in registry if r[1]]
+        if not active_registry:
+            logger.error("No bots enabled in config. Enable at least one.")
+            return
+
+        enabled_str = ", ".join([f"Bot {r[2]}" for r in active_registry])
+        logger.info("Active Bots: %s", enabled_str)
+        if not PAPER_TRADING:
+            logger.info("Live conflict rule: %s", LIVE_CONFLICT_RULE)
+        logger.info("=" * 60)
+
+        self.chainlink = ChainlinkFeed(self.binance)
+
+        async with self.poly:
+            # Instantiate active bots
+            for bot_class, _, bot_id in active_registry:
+                self.bots[bot_id] = bot_class(
+                    self.binance, self.chainlink, self.poly,
+                    wallet_address=self.wallet_address,
+                    polymarket_client=self.polymarket_client
+                )
+
+            # Centralized risk parsing
+            self.global_risk = GlobalRiskManager(self.bots)
+            for bot in self.bots.values():
+                bot.global_risk = self.global_risk
+                if hasattr(bot, "executor") and bot.executor:
+                    bot.executor.global_risk = self.global_risk
+
+            # First seed only the CURRENT active windows
+            ts_now = int(time.time() // 300) * 300
+            await self.poly.refresh_all_markets(pattern=f"*-updown-*-{ts_now}")
+
+            tasks = [
+                asyncio.create_task(self.binance.start(),          name="binance_ws"),
+                asyncio.create_task(self.chainlink.start(),        name="chainlink"),
+                asyncio.create_task(self.poly.start_odds_stream(), name="poly_ws"),
+                asyncio.create_task(self.poly.start_discovery(),   name="poly_discovery"),
+            ]
+            
+            # Start bot main loops
+            for bot_id, bot_instance in self.bots.items():
+                t = asyncio.create_task(bot_instance.run(), name=f"bot_{bot_id.lower()}")
+                self.bot_tasks.append(t)
+                tasks.append(t)
+
+            if not PAPER_TRADING and len(self.bots) >= 2:
+                tasks.append(asyncio.create_task(
+                    self._conflict_monitor(), name="conflict_monitor"
+                ))
+            
+            # Global Health Monitor
+            tasks.append(asyncio.create_task(self._health_monitor(), name="health_monitor"))
+
+            self._running = True
+            try:
+                await asyncio.gather(*tasks)
+            except asyncio.CancelledError:
+                logger.info("Shutdown signal received")
+            except Exception as e:
+                logger.error("Fatal: %s", e, exc_info=True)
+            finally:
+                await self._shutdown(tasks)
+
+    async def _health_monitor(self):
+        """Monitors global circuit breaker across all bots."""
+        logger.info("Global risk monitor active")
+        while self._running:
+            if self.global_risk and not await self.global_risk.check_health():
+                if getattr(self.global_risk, "needs_liquidation", False):
+                    await self._liquidate_portfolio()
+                    
+                logger.critical("GLOBAL HALT TRIGGERED — SHUTTING DOWN")
+                self._running = False
+                # Trigger clean shutdown by throwing a custom exception or just stopping
+                break
+            await asyncio.sleep(10)
+
+    async def _liquidate_portfolio(self):
+        """Emergency market sell of all open positions to secure unrealized profit."""
+        logger.critical("STARTING PORTFOLIO LIQUIDATION SEQUENCE...")
+        tasks = []
+        reason = getattr(self.global_risk, "liquidation_reason", "unrealized_profit_lock")
+        
+        for bid, bot in self.bots.items():
+            if hasattr(bot, "executor") and bot.executor:
+                for tid, pos in list(bot.executor._positions.items()):
+                    m = bot.poly.markets.get(pos.get("token_id")) if hasattr(bot, "poly") else None
+                    current_odds = m.get("odds") if m else pos.get("entry_odds")
+                    logger.warning("[Bot %s] Panic liquidating %s at %.3f", bid, str(tid)[:8], current_odds)
+                    # We pass the reason so the database explicitly knows why it closed
+                    tasks.append(bot.executor._exit(tid, pos, current_odds, reason))
+                    
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+            logger.critical("LIQUIDATION COMPLETE. ALL SECURE.")
+        else:
+            logger.critical("LIQUIDATION COMPLETE. NO POSITIONS CONFLICTED.")
+
+    async def _conflict_monitor(self):
+        """Live mode only: monitors for both bots signalling same window."""
+        logger.info("Live conflict monitor active | rule=%s", LIVE_CONFLICT_RULE)
+        while self._running:
+            await asyncio.sleep(1)
+
+    def resolve_conflict(self, score_a: float, score_b: float) -> str:
+        if LIVE_CONFLICT_RULE == "higher_confidence":
+            return "A" if abs(score_a) >= abs(score_b) else "B"
+        elif LIVE_CONFLICT_RULE == "bot_a_priority":
+            return "A"
+        elif LIVE_CONFLICT_RULE == "bot_b_priority":
+            return "B"
+        elif LIVE_CONFLICT_RULE == "no_trade":
+            return "none"
+        return "A"
+
+    async def _shutdown(self, tasks):
+        logger.info("Shutting down...")
+        self._running = False
+        
+        # 1. STOP FEEDS
+        if self.binance:
+            self.binance.stop()
+        if self.chainlink:
+            self.chainlink.stop()
+        
+        # 2. STOP BOTS
+        for bot in self.bots.values():
+            bot.stop()
+            
+        # 3. CANCEL TASKS
+        for t in tasks:
+            if not t.done():
+                t.cancel()
+        
+        await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # 4. REDEEM WINNINGS (Live only)
+        if not PAPER_TRADING:
+            logger.info("Starting post-session redemption...")
+            redeemer = Redeemer()
+            for bid, bot in self.bots.items():
+                unredeemed = bot.db.get_unredeemed_wins()
+                if unredeemed:
+                    logger.info("[Bot %s] Found %d unredeemed wins", bid, len(unredeemed))
+                    for trade in unredeemed:
+                        success = redeemer.redeem(
+                            trade["market_condition_id"], 
+                            [trade["outcome_index"]]
+                        )
+                        if success:
+                            bot.db.mark_redeemed(trade["id"])
+                    
+        # 5. FINAL REPORT
+        balances = {bid: b.bankroll.balance for bid, b in self.bots.items()}
+        print_comparison(balances)
+        logger.info("Shutdown complete")
+
+
+def main():
+    validate()
+    orch = Orchestrator()
+
+    def _handle(sig, frame):
+        logger.info("Interrupt received")
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT,  _handle)
+    signal.signal(signal.SIGTERM, _handle)
+    asyncio.run(orch.run())
+
+
+if __name__ == "__main__":
+    main()
