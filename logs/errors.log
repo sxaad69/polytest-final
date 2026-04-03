@@ -1,471 +1,114 @@
-2026-03-31 22:16:18,278 [CRITICAL] risk.manager [Line: 582] check_health():
-⚠️ PANIC SELL TRIGGERED: -31.5% Floating Equity Crash | LIQUIDATING PORTFOLIO
-
-2026-03-31 22:16:18,373 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'the orderbook 47652392934132521228992837682556870671979271120040383071894420419140494175395 does not exist'}]
-
-2026-03-31 22:16:18,439 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'the orderbook 12287410094516174763551435603772496409100228762040259841234637324625792455108 does not exist'}]
-
-2026-03-31 22:16:18,518 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'the orderbook 42869128614563425287881517468482647017233754146053271941954717533759830743394 does not exist'}]
-
-2026-03-31 22:16:18,518 [CRITICAL] risk.manager [Line: 419] liquidate_all_positions():
-[LIQUIDATE] Bot G: Closed 3 live positions | Reason: panic_exit_-31.5pct
-
-2026-03-31 22:16:18,518 [CRITICAL] __main__ [Line: 187] _liquidate_portfolio():
-STARTING PORTFOLIO LIQUIDATION SEQUENCE...
-
-2026-03-31 22:16:18,579 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'the orderbook 47652392934132521228992837682556870671979271120040383071894420419140494175395 does not exist'}]
-
-2026-03-31 22:16:18,639 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'the orderbook 12287410094516174763551435603772496409100228762040259841234637324625792455108 does not exist'}]
-
-2026-03-31 22:16:18,767 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'the orderbook 42869128614563425287881517468482647017233754146053271941954717533759830743394 does not exist'}]
-
-2026-03-31 22:16:18,773 [CRITICAL] __main__ [Line: 202] _liquidate_portfolio():
-LIQUIDATION COMPLETE. ALL SECURE.
-
-2026-03-31 22:16:18,773 [CRITICAL] __main__ [Line: 179] _health_monitor():
-GLOBAL HALT TRIGGERED — SHUTTING DOWN
-
-2026-03-31 22:16:48,664 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 27780000'}]
-
-2026-03-31 22:16:51,747 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 41670000'}]
-
-2026-03-31 22:16:55,063 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 35710000'}]
-
-2026-03-31 22:16:58,140 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 35710000'}]
-
-2026-03-31 22:17:01,223 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 38460000'}]
-
-2026-03-31 22:17:04,300 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 33330000'}]
-
-2026-03-31 22:17:04,301 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 5 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:17:07,381 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 33330000'}]
-
-2026-03-31 22:17:07,381 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 6 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:17:10,457 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 33330000'}]
-
-2026-03-31 22:17:10,457 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 7 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:17:13,542 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 33330000'}]
-
-2026-03-31 22:17:13,543 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 8 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:17:16,624 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 27780000'}]
-
-2026-03-31 22:17:16,624 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 9 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:17:19,703 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 27780000'}]
-
-2026-03-31 22:17:19,703 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 10 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:17:22,781 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 33330000'}]
-
-2026-03-31 22:17:22,781 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 11 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:17:25,856 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 27780000'}]
-
-2026-03-31 22:17:25,856 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 12 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:17:28,931 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 35710000'}]
-
-2026-03-31 22:17:28,931 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 13 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:17:32,012 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 41670000'}]
-
-2026-03-31 22:17:32,012 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 14 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:17:35,090 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 45450000'}]
-
-2026-03-31 22:17:35,091 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 15 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:17:35,220 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 6940000'}]
-
-2026-03-31 22:17:38,317 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 45450000'}]
-
-2026-03-31 22:17:38,317 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 16 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:17:38,395 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 6940000'}]
-
-2026-03-31 22:17:41,474 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 45450000'}]
-
-2026-03-31 22:17:41,475 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 17 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:17:41,549 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 6940000'}]
-
-2026-03-31 22:17:44,624 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 45450000'}]
-
-2026-03-31 22:17:44,624 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 18 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:17:44,697 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 6940000'}]
-
-2026-03-31 22:17:47,777 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 45450000'}]
-
-2026-03-31 22:17:47,777 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 19 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:17:47,854 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 6940000'}]
-
-2026-03-31 22:17:50,938 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 45450000'}]
-
-2026-03-31 22:17:50,938 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 20 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:17:51,016 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 8470000'}]
-
-2026-03-31 22:17:51,017 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=7 reason=take_profit | Failed 5 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:17:54,097 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 41670000'}]
-
-2026-03-31 22:17:54,097 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 21 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:17:54,174 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 8470000'}]
-
-2026-03-31 22:17:54,174 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=7 reason=take_profit | Failed 6 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:17:57,254 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 55560000'}]
-
-2026-03-31 22:17:57,254 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 22 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:17:57,339 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 8470000'}]
-
-2026-03-31 22:17:57,339 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=7 reason=take_profit | Failed 7 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:00,423 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 41670000'}]
-
-2026-03-31 22:18:00,423 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 23 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:00,497 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 8470000'}]
-
-2026-03-31 22:18:00,497 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=7 reason=take_profit | Failed 8 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:03,573 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 41670000'}]
-
-2026-03-31 22:18:03,574 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 24 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:03,658 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 8470000'}]
-
-2026-03-31 22:18:03,658 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=7 reason=take_profit | Failed 9 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:06,738 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 35710000'}]
-
-2026-03-31 22:18:06,738 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 25 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:06,820 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 6940000'}]
-
-2026-03-31 22:18:06,820 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=7 reason=take_profit | Failed 10 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:09,900 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 31250000'}]
-
-2026-03-31 22:18:09,900 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 26 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:10,000 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 6940000'}]
-
-2026-03-31 22:18:10,000 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=7 reason=take_profit | Failed 11 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:13,089 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 31250000'}]
-
-2026-03-31 22:18:13,089 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 27 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:13,176 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 6940000'}]
-
-2026-03-31 22:18:13,176 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=7 reason=take_profit | Failed 12 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:16,252 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 31250000'}]
-
-2026-03-31 22:18:16,252 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 28 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:16,338 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 6940000'}]
-
-2026-03-31 22:18:16,338 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=7 reason=take_profit | Failed 13 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:19,414 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 31250000'}]
-
-2026-03-31 22:18:19,414 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 29 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:19,488 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 6940000'}]
-
-2026-03-31 22:18:19,489 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=7 reason=take_profit | Failed 14 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:22,568 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 31250000'}]
-
-2026-03-31 22:18:22,568 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 30 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:22,645 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 6940000'}]
-
-2026-03-31 22:18:22,646 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=7 reason=take_profit | Failed 15 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:25,721 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 31250000'}]
-
-2026-03-31 22:18:25,721 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 31 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:25,795 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 6940000'}]
-
-2026-03-31 22:18:25,795 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=7 reason=take_profit | Failed 16 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:28,879 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 29410000'}]
-
-2026-03-31 22:18:28,879 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 32 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:28,953 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 6940000'}]
-
-2026-03-31 22:18:28,954 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=7 reason=take_profit | Failed 17 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:32,032 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 35710000'}]
-
-2026-03-31 22:18:32,032 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 33 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:32,111 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 6940000'}]
-
-2026-03-31 22:18:32,111 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=7 reason=take_profit | Failed 18 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:35,184 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 35710000'}]
-
-2026-03-31 22:18:35,184 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 34 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:35,258 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 6940000'}]
-
-2026-03-31 22:18:35,258 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=7 reason=take_profit | Failed 19 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:38,336 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 35710000'}]
-
-2026-03-31 22:18:38,336 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 35 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:38,409 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 6940000'}]
-
-2026-03-31 22:18:38,409 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=7 reason=take_profit | Failed 20 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:41,482 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 38460000'}]
-
-2026-03-31 22:18:41,483 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 36 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:41,552 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 6940000'}]
-
-2026-03-31 22:18:41,552 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=7 reason=take_profit | Failed 21 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:44,635 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 55560000'}]
-
-2026-03-31 22:18:44,635 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 37 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:47,708 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 38460000'}]
-
-2026-03-31 22:18:47,708 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 38 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:50,785 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 71430000'}]
-
-2026-03-31 22:18:50,786 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 39 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:53,860 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 100000000'}]
-
-2026-03-31 22:18:53,860 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 40 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:18:56,937 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 100000000'}]
-
-2026-03-31 22:18:56,937 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 41 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:19:00,015 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 33330000'}]
-
-2026-03-31 22:19:00,015 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 42 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:19:03,100 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 125000000'}]
-
-2026-03-31 22:19:03,101 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 43 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:19:06,184 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 166670000'}]
-
-2026-03-31 22:19:06,184 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 44 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:19:09,282 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 50000000'}]
-
-2026-03-31 22:19:09,282 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 45 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:19:12,359 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 55560000'}]
-
-2026-03-31 22:19:12,360 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 46 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:19:15,450 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 83330000'}]
-
-2026-03-31 22:19:15,450 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 47 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:19:18,526 [ERROR] feeds.polymarket [Line: 733] place_order():
-[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 13158063, order amount: 50000000'}]
-
-2026-03-31 22:19:18,526 [ERROR] execution.trader [Line: 298] _exit():
-[BotG] EXIT CRITICAL | id=5 reason=stop_loss | Failed 48 times | Position still open! MANUAL CLOSE REQUIRED
-
-2026-03-31 22:19:20,765 [ERROR] execution.redeemer [Line: 77] redeem():
-Redemption error: 401 Client Error: Unauthorized for url: https://polygon-mainnet.g.alchemy.com/v2/YOUR_KEY
-
-2026-03-31 22:19:22,775 [ERROR] execution.redeemer [Line: 77] redeem():
-Redemption error: 401 Client Error: Unauthorized for url: https://polygon-mainnet.g.alchemy.com/v2/YOUR_KEY
-
-2026-03-31 22:31:12,255 [CRITICAL] risk.manager [Line: 582] check_health():
-⚠️ PANIC SELL TRIGGERED: -39.9% Floating Equity Crash | LIQUIDATING PORTFOLIO
-
-2026-03-31 22:31:12,255 [ERROR] risk.manager [Line: 407] liquidate_all_positions():
-[LIQUIDATE] Failed to close position 1 for bot G: 'size'
-
-2026-03-31 22:31:12,255 [ERROR] risk.manager [Line: 407] liquidate_all_positions():
-[LIQUIDATE] Failed to close position 2 for bot G: 'size'
-
-2026-03-31 22:31:12,255 [ERROR] risk.manager [Line: 407] liquidate_all_positions():
-[LIQUIDATE] Failed to close position 4 for bot G: 'size'
-
-2026-03-31 22:31:12,255 [ERROR] risk.manager [Line: 407] liquidate_all_positions():
-[LIQUIDATE] Failed to close position 5 for bot G: 'size'
-
-2026-03-31 22:31:12,255 [ERROR] risk.manager [Line: 407] liquidate_all_positions():
-[LIQUIDATE] Failed to close position 7 for bot G: 'size'
-
-2026-03-31 22:31:12,255 [ERROR] risk.manager [Line: 422] liquidate_all_positions():
-[LIQUIDATE] Bot G: Only closed 0/5 positions | Reason: panic_exit_-39.9pct
-
-2026-03-31 22:31:12,255 [CRITICAL] __main__ [Line: 187] _liquidate_portfolio():
-STARTING PORTFOLIO LIQUIDATION SEQUENCE...
-
-2026-03-31 22:31:12,259 [CRITICAL] __main__ [Line: 202] _liquidate_portfolio():
-LIQUIDATION COMPLETE. ALL SECURE.
-
-2026-03-31 22:31:12,259 [CRITICAL] __main__ [Line: 179] _health_monitor():
-GLOBAL HALT TRIGGERED — SHUTTING DOWN
-
-2026-03-31 22:34:58,474 [ERROR] execution.redeemer [Line: 77] redeem():
-Redemption error: 401 Client Error: Unauthorized for url: https://polygon-mainnet.g.alchemy.com/v2/YOUR_KEY
-
-2026-03-31 22:35:00,495 [ERROR] execution.redeemer [Line: 77] redeem():
-Redemption error: 401 Client Error: Unauthorized for url: https://polygon-mainnet.g.alchemy.com/v2/YOUR_KEY
-
+2026-04-03 20:21:34,602 [CRITICAL] risk.manager [Line: 266] __init__():
+[RISK] Overriding config bankrolls! Using live wallet balance $60.52 as baseline.
+
+2026-04-03 20:30:03,760 [ERROR] feeds.polymarket [Line: 498] _ws_connect():
+Polymarket WS: Connection loop failed: no close frame received or sent
+
+2026-04-03 20:30:30,217 [ERROR] feeds.polymarket [Line: 872] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': "order couldn't be fully filled. FOK orders are fully filled or killed."}]
+
+2026-04-03 20:30:41,451 [ERROR] execution.redeemer [Line: 77] redeem():
+Redemption error: {'code': -32000, 'message': 'insufficient funds for gas * price + value: balance 0, tx cost 18758298410400000, overshot 18758298410400000'}
+
+2026-04-03 20:30:41,480 [ERROR] asyncio [Line: 1821] default_exception_handler():
+Task exception was never retrieved
+future: <Task finished name='Task-1' coro=<Orchestrator.run() done, defined at /home/ubuntu/polytest_legacy/main.py:90> exception=SystemExit(0)>
+Traceback (most recent call last):
+  File "/home/ubuntu/polytest_legacy/main.py", line 280, in <module>
+    main()
+  File "/home/ubuntu/polytest_legacy/main.py", line 276, in main
+    asyncio.run(orch.run())
+  File "/usr/lib/python3.12/asyncio/runners.py", line 193, in run
+    with Runner(debug=debug, loop_factory=loop_factory) as runner:
+  File "/usr/lib/python3.12/asyncio/runners.py", line 62, in __exit__
+    self.close()
+  File "/usr/lib/python3.12/asyncio/runners.py", line 70, in close
+    _cancel_all_tasks(loop)
+  File "/usr/lib/python3.12/asyncio/runners.py", line 205, in _cancel_all_tasks
+    loop.run_until_complete(tasks.gather(*to_cancel, return_exceptions=True))
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 674, in run_until_complete
+    self.run_forever()
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 641, in run_forever
+    self._run_once()
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 1987, in _run_once
+    handle._run()
+  File "/usr/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+  File "/home/ubuntu/polytest_legacy/main.py", line 163, in run
+    await asyncio.gather(*tasks)
+  File "/usr/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 674, in run_until_complete
+    self.run_forever()
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 641, in run_forever
+    self._run_once()
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 1987, in _run_once
+    handle._run()
+  File "/usr/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+  File "/home/ubuntu/polytest_legacy/main.py", line 175, in _health_monitor
+    if self.global_risk and not await self.global_risk.check_health():
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/risk/manager.py", line 646, in check_health
+    total_pnl, bot_profit_pct, source = self._get_bot_pnl(bid, bot, bot_initial, since_ts=self._started_at)
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/risk/manager.py", line 337, in _get_bot_pnl
+    result = self.polymarket_client.get_pnl_summary(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/risk/polymarket_api.py", line 433, in get_pnl_summary
+    portfolio = self.get_portfolio_value(address, since_ts=since_ts)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/risk/polymarket_api.py", line 392, in get_portfolio_value
+    current_price = self.get_current_price(token_id)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/risk/polymarket_api.py", line 141, in get_current_price
+    response = requests.get(url, params=params, timeout=10)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/.venv/lib/python3.12/site-packages/requests/api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/.venv/lib/python3.12/site-packages/requests/api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/.venv/lib/python3.12/site-packages/requests/sessions.py", line 592, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/.venv/lib/python3.12/site-packages/requests/sessions.py", line 706, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/.venv/lib/python3.12/site-packages/requests/adapters.py", line 645, in send
+    resp = conn.urlopen(
+           ^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/.venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 787, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/.venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 534, in _make_request
+    response = conn.getresponse()
+               ^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/.venv/lib/python3.12/site-packages/urllib3/connection.py", line 571, in getresponse
+    httplib_response = super().getresponse()
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/http/client.py", line 1448, in getresponse
+    response.begin()
+  File "/usr/lib/python3.12/http/client.py", line 336, in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/http/client.py", line 297, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/ssl.py", line 1252, in recv_into
+    return self.read(nbytes, buffer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/ssl.py", line 1104, in read
+    return self._sslobj.read(len, buffer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/main.py", line 272, in _handle
+    sys.exit(0)
+SystemExit: 0

@@ -1,0 +1,266 @@
+2026-04-02 23:24:27,381 [CRITICAL] risk.manager [Line: 266] __init__():
+[RISK] Overriding config bankrolls! Using live wallet balance $60.62 as baseline.
+
+2026-04-02 23:30:09,539 [ERROR] feeds.polymarket [Line: 456] _ws_connect():
+Polymarket WS: Connection loop failed: no close frame received or sent
+
+2026-04-02 23:34:00,423 [ERROR] execution.redeemer [Line: 77] redeem():
+Redemption error: 'SignedTransaction' object has no attribute 'rawTransaction'
+
+2026-04-02 23:51:38,083 [CRITICAL] risk.manager [Line: 266] __init__():
+[RISK] Overriding config bankrolls! Using live wallet balance $55.05 as baseline.
+
+2026-04-02 23:59:45,497 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'invalid amounts, maker and taker amount must be higher than 0'}]
+
+2026-04-02 23:59:45,660 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 9990000'}]
+
+2026-04-02 23:59:49,005 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'invalid amounts, maker and taker amount must be higher than 0'}]
+
+2026-04-02 23:59:49,138 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 9990000'}]
+
+2026-04-02 23:59:52,765 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'invalid amounts, maker and taker amount must be higher than 0'}]
+
+2026-04-02 23:59:52,875 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 9990000'}]
+
+2026-04-02 23:59:55,993 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'invalid amounts, maker and taker amount must be higher than 0'}]
+
+2026-04-02 23:59:56,123 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 9990000'}]
+
+2026-04-02 23:59:59,232 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'invalid amounts, maker and taker amount must be higher than 0'}]
+
+2026-04-02 23:59:59,347 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 9990000'}]
+
+2026-04-03 00:00:02,461 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'invalid amounts, maker and taker amount must be higher than 0'}]
+
+2026-04-03 00:00:02,461 [ERROR] execution.trader [Line: 371] _exit():
+[BotG] EXIT CRITICAL | id=6 reason=hard_stop | Failed 5 times | Position still open! MANUAL CLOSE REQUIRED
+
+2026-04-03 00:00:02,585 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 9990000'}]
+
+2026-04-03 00:00:02,585 [ERROR] execution.trader [Line: 371] _exit():
+[BotG] EXIT CRITICAL | id=7 reason=hard_stop | Failed 5 times | Position still open! MANUAL CLOSE REQUIRED
+
+2026-04-03 00:00:06,519 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'invalid amounts, maker and taker amount must be higher than 0'}]
+
+2026-04-03 00:00:06,520 [ERROR] execution.trader [Line: 371] _exit():
+[BotG] EXIT CRITICAL | id=6 reason=hard_stop | Failed 6 times | Position still open! MANUAL CLOSE REQUIRED
+
+2026-04-03 00:00:06,521 [ERROR] feeds.polymarket [Line: 456] _ws_connect():
+Polymarket WS: Connection loop failed: no close frame received or sent
+
+2026-04-03 00:00:06,630 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 9990000'}]
+
+2026-04-03 00:00:06,630 [ERROR] execution.trader [Line: 371] _exit():
+[BotG] EXIT CRITICAL | id=7 reason=hard_stop | Failed 6 times | Position still open! MANUAL CLOSE REQUIRED
+
+2026-04-03 00:00:09,773 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'invalid amounts, maker and taker amount must be higher than 0'}]
+
+2026-04-03 00:00:09,773 [ERROR] execution.trader [Line: 371] _exit():
+[BotG] EXIT CRITICAL | id=6 reason=hard_stop | Failed 7 times | Position still open! MANUAL CLOSE REQUIRED
+
+2026-04-03 00:00:09,885 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 9990000'}]
+
+2026-04-03 00:00:09,885 [ERROR] execution.trader [Line: 371] _exit():
+[BotG] EXIT CRITICAL | id=7 reason=hard_stop | Failed 7 times | Position still open! MANUAL CLOSE REQUIRED
+
+2026-04-03 00:00:13,007 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'invalid amounts, maker and taker amount must be higher than 0'}]
+
+2026-04-03 00:00:13,007 [ERROR] execution.trader [Line: 371] _exit():
+[BotG] EXIT CRITICAL | id=6 reason=hard_stop | Failed 8 times | Position still open! MANUAL CLOSE REQUIRED
+
+2026-04-03 00:00:13,120 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 9990000'}]
+
+2026-04-03 00:00:13,120 [ERROR] execution.trader [Line: 371] _exit():
+[BotG] EXIT CRITICAL | id=7 reason=hard_stop | Failed 8 times | Position still open! MANUAL CLOSE REQUIRED
+
+2026-04-03 00:00:16,251 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'invalid amounts, maker and taker amount must be higher than 0'}]
+
+2026-04-03 00:00:16,251 [ERROR] execution.trader [Line: 371] _exit():
+[BotG] EXIT CRITICAL | id=6 reason=hard_stop | Failed 9 times | Position still open! MANUAL CLOSE REQUIRED
+
+2026-04-03 00:00:16,413 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 9990000'}]
+
+2026-04-03 00:00:16,413 [ERROR] execution.trader [Line: 371] _exit():
+[BotG] EXIT CRITICAL | id=7 reason=hard_stop | Failed 9 times | Position still open! MANUAL CLOSE REQUIRED
+
+2026-04-03 00:00:20,304 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'invalid amounts, maker and taker amount must be higher than 0'}]
+
+2026-04-03 00:00:20,304 [ERROR] execution.trader [Line: 371] _exit():
+[BotG] EXIT CRITICAL | id=6 reason=hard_stop | Failed 10 times | Position still open! MANUAL CLOSE REQUIRED
+
+2026-04-03 00:00:20,414 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 9990000'}]
+
+2026-04-03 00:00:20,414 [ERROR] execution.trader [Line: 371] _exit():
+[BotG] EXIT CRITICAL | id=7 reason=hard_stop | Failed 10 times | Position still open! MANUAL CLOSE REQUIRED
+
+2026-04-03 00:00:23,268 [ERROR] feeds.polymarket [Line: 456] _ws_connect():
+Polymarket WS: Connection loop failed: no close frame received or sent
+
+2026-04-03 00:00:23,521 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'invalid amounts, maker and taker amount must be higher than 0'}]
+
+2026-04-03 00:00:23,521 [ERROR] execution.trader [Line: 371] _exit():
+[BotG] EXIT CRITICAL | id=6 reason=hard_stop | Failed 11 times | Position still open! MANUAL CLOSE REQUIRED
+
+2026-04-03 00:00:23,650 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 9990000'}]
+
+2026-04-03 00:00:23,650 [ERROR] execution.trader [Line: 371] _exit():
+[BotG] EXIT CRITICAL | id=7 reason=hard_stop | Failed 11 times | Position still open! MANUAL CLOSE REQUIRED
+
+2026-04-03 00:00:26,782 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'invalid amounts, maker and taker amount must be higher than 0'}]
+
+2026-04-03 00:00:26,782 [ERROR] execution.trader [Line: 371] _exit():
+[BotG] EXIT CRITICAL | id=6 reason=hard_stop | Failed 12 times | Position still open! MANUAL CLOSE REQUIRED
+
+2026-04-03 00:00:26,929 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'not enough balance / allowance: the balance is not enough -> balance: 0, order amount: 9990000'}]
+
+2026-04-03 00:00:26,930 [ERROR] execution.trader [Line: 371] _exit():
+[BotG] EXIT CRITICAL | id=7 reason=hard_stop | Failed 12 times | Position still open! MANUAL CLOSE REQUIRED
+
+2026-04-03 00:00:30,065 [ERROR] feeds.polymarket [Line: 785] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': 'invalid amounts, maker and taker amount must be higher than 0'}]
+
+2026-04-03 00:00:30,065 [ERROR] execution.trader [Line: 371] _exit():
+[BotG] EXIT CRITICAL | id=6 reason=hard_stop | Failed 13 times | Position still open! MANUAL CLOSE REQUIRED
+
+2026-04-03 00:00:47,150 [ERROR] execution.redeemer [Line: 77] redeem():
+Redemption error: {'code': -32000, 'message': 'insufficient funds for gas * price + value: balance 0, tx cost 39467831343900000, overshot 39467831343900000'}
+
+2026-04-03 00:00:47,331 [ERROR] execution.redeemer [Line: 77] redeem():
+Redemption error: {'code': -32000, 'message': 'insufficient funds for gas * price + value: balance 0, tx cost 39467831343900000, overshot 39467831343900000'}
+
+2026-04-03 00:00:47,370 [ERROR] asyncio [Line: 1821] default_exception_handler():
+Task exception was never retrieved
+future: <Task finished name='Task-1' coro=<Orchestrator.run() done, defined at /home/ubuntu/polytest_legacy/main.py:90> exception=SystemExit(0)>
+Traceback (most recent call last):
+  File "/home/ubuntu/polytest_legacy/risk/polymarket_api.py", line 162, in get_current_price
+    raise ValueError("Empty bids/asks in book response")
+ValueError: Empty bids/asks in book response
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ubuntu/polytest_legacy/main.py", line 280, in <module>
+    main()
+  File "/home/ubuntu/polytest_legacy/main.py", line 276, in main
+    asyncio.run(orch.run())
+  File "/usr/lib/python3.12/asyncio/runners.py", line 193, in run
+    with Runner(debug=debug, loop_factory=loop_factory) as runner:
+  File "/usr/lib/python3.12/asyncio/runners.py", line 62, in __exit__
+    self.close()
+  File "/usr/lib/python3.12/asyncio/runners.py", line 70, in close
+    _cancel_all_tasks(loop)
+  File "/usr/lib/python3.12/asyncio/runners.py", line 205, in _cancel_all_tasks
+    loop.run_until_complete(tasks.gather(*to_cancel, return_exceptions=True))
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 674, in run_until_complete
+    self.run_forever()
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 641, in run_forever
+    self._run_once()
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 1987, in _run_once
+    handle._run()
+  File "/usr/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+  File "/home/ubuntu/polytest_legacy/main.py", line 163, in run
+    await asyncio.gather(*tasks)
+  File "/usr/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 674, in run_until_complete
+    self.run_forever()
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 641, in run_forever
+    self._run_once()
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 1987, in _run_once
+    handle._run()
+  File "/usr/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+  File "/home/ubuntu/polytest_legacy/main.py", line 175, in _health_monitor
+    if self.global_risk and not await self.global_risk.check_health():
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/risk/manager.py", line 646, in check_health
+    total_pnl, bot_profit_pct, source = self._get_bot_pnl(bid, bot, bot_initial, since_ts=self._started_at)
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/risk/manager.py", line 337, in _get_bot_pnl
+    result = self.polymarket_client.get_pnl_summary(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/risk/polymarket_api.py", line 433, in get_pnl_summary
+    portfolio = self.get_portfolio_value(address, since_ts=since_ts)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/risk/polymarket_api.py", line 392, in get_portfolio_value
+    current_price = self.get_current_price(token_id)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/risk/polymarket_api.py", line 169, in get_current_price
+    m_res = requests.get(m_url, params={"token_id": token_id}, timeout=5)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/.venv/lib/python3.12/site-packages/requests/api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/.venv/lib/python3.12/site-packages/requests/api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/.venv/lib/python3.12/site-packages/requests/sessions.py", line 592, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/.venv/lib/python3.12/site-packages/requests/sessions.py", line 706, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/.venv/lib/python3.12/site-packages/requests/adapters.py", line 645, in send
+    resp = conn.urlopen(
+           ^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/.venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 787, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/.venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 464, in _make_request
+    self._validate_conn(conn)
+  File "/home/ubuntu/polytest_legacy/.venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 1093, in _validate_conn
+    conn.connect()
+  File "/home/ubuntu/polytest_legacy/.venv/lib/python3.12/site-packages/urllib3/connection.py", line 796, in connect
+    sock_and_verified = _ssl_wrap_socket_and_match_hostname(
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/.venv/lib/python3.12/site-packages/urllib3/connection.py", line 975, in _ssl_wrap_socket_and_match_hostname
+    ssl_sock = ssl_wrap_socket(
+               ^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/polytest_legacy/.venv/lib/python3.12/site-packages/urllib3/util/ssl_.py", line 461, in ssl_wrap_socket
+    context.load_verify_locations(ca_certs, ca_cert_dir, ca_cert_data)
+  File "/home/ubuntu/polytest_legacy/main.py", line 272, in _handle
+    sys.exit(0)
+SystemExit: 0
+2026-04-03 00:13:33,830 [CRITICAL] risk.manager [Line: 266] __init__():
+[RISK] Overriding config bankrolls! Using live wallet balance $48.80 as baseline.
+
+2026-04-03 00:13:54,899 [ERROR] feeds.polymarket [Line: 456] _ws_connect():
+Polymarket WS: Connection loop failed: no close frame received or sent
+
+2026-04-03 00:16:22,207 [ERROR] execution.redeemer [Line: 77] redeem():
+Redemption error: {'code': -32000, 'message': 'insufficient funds for gas * price + value: balance 0, tx cost 19590752366700000, overshot 19590752366700000'}
+
+2026-04-03 00:16:22,404 [ERROR] execution.redeemer [Line: 77] redeem():
+Redemption error: {'code': -32000, 'message': 'insufficient funds for gas * price + value: balance 0, tx cost 19590752366700000, overshot 19590752366700000'}
+

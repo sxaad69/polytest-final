@@ -52,8 +52,17 @@ class PolymarketFeed:
         self._last_subscribed_ids = set()
         self._ws           = None
         self._debug_count  = 0  # Counter for Wide Debug prints
+        # Shared reference to executor._positions so _handle() can update
+        # last_ws_update_ts on position objects when a live price arrives.
+        # Populated via register_executor() at bot startup.
+        self._exec_positions = {}
 
     # ── Compatibility Layer (to avoid breaking Bot A & B) ──────────────────────
+
+    def register_executor(self, executor):
+        """Wire up the shared positions reference so _handle() can update
+        last_ws_update_ts on position objects when live WS prices arrive."""
+        self._exec_positions = executor._positions
 
     @property
     def up_token_id(self): return self._default_up_id
@@ -183,6 +192,7 @@ class PolymarketFeed:
 
                         self.markets[tid] = {
                             "odds": None,
+                            "ltp": None,    # Last Trade Price (High-fidelity source)
                             "history": deque(maxlen=60),
                             "velocity": 0.0,
                             "bids": [], "asks": [], "depth": 0.0,
@@ -386,7 +396,39 @@ class PolymarketFeed:
                     best_bid = float(bids[0].get("price", 0))
                     best_ask = float(asks[0].get("price", 0))
                     if best_bid > 0 and best_ask > 0:
+                        spread = best_ask - best_bid
                         self.markets[token_id]["odds"] = (best_bid + best_ask) / 2
+                        
+                        # Rule: If spread > 0.10, the midpoint is often unreliable.
+                        # We will supplement it with LTP below.
+                        
+                        # FIX: Also update the peer (mirror) token price via hedge math
+                        peer_id = self.markets[token_id].get("peer_id")
+                        if peer_id and peer_id in self.markets:
+                            self.markets[peer_id]["odds"] = calculate_hedge_price(
+                                self.markets[token_id]["odds"]
+                            )
+
+                # ── FETCH LAST TRADE PRICE (The Reality Source) ──
+                try:
+                    async with self._session.get(
+                        f"{POLYMARKET_CLOB_URL}/last-trade-price",
+                        params={"token_id": token_id},
+                        timeout=aiohttp.ClientTimeout(total=5)
+                    ) as resp:
+                        if resp.status == 200:
+                            ltp_data = await resp.json()
+                            ltp = float(ltp_data.get("price", 0)) if ltp_data.get("price") else None
+                            if ltp:
+                                self.markets[token_id]["ltp"] = ltp
+                                
+                                # If spread is wide, LTP IS the "odds" for valuation
+                                bid = float(bids[0].get("price", 0)) if bids else 0
+                                ask = float(asks[0].get("price", 0)) if asks else 0
+                                if bid and ask and (ask - bid) > 0.10:
+                                    self.markets[token_id]["odds"] = ltp
+                except Exception as e:
+                    logger.debug("LTP fetch error for %s: %s", token_id[:12], e)
                 
                 # Always update depth for any token (not just default)
                 self.markets[token_id]["depth"] = sum(
@@ -476,42 +518,96 @@ class PolymarketFeed:
         for t in new_tids:
             self._subscribed_tids.add(t)
             
-        await self._seed_odds(new_tids)
+        # FIX: Use high-fidelity book seeding instead of unreliable /midpoint
+        await self._seed_from_book(new_tids)
 
-    async def _seed_odds(self, tids: list):
-        """Fetch current odds via REST to seed initial state for new tokens."""
+    async def subscribe_token(self, token_id: str):
+        """Dynamically subscribe a single token to the live WebSocket.
+        
+        Called after a new position is opened so TP/SL can track real prices.
+        Safe to call at any time — idempotent, won't double-subscribe.
+        """
+        if not hasattr(self, '_subscribed_tids'):
+            self._subscribed_tids = set()
+
+        # Already subscribed — nothing to do
+        if token_id in self._subscribed_tids:
+            return
+
+        # Ensure the token exists in self.markets with at least a minimal entry
+        # so WS _handle() will accept and store price updates for it
+        if token_id not in self.markets:
+            from collections import deque
+            # FIX: Attempt to resolve peer_id from existing registry before creating
+            # an empty slot with peer_id=None which permanently breaks Hedge Logic.
+            resolved_peer = next(
+                (m.get("peer_id") for tid, m in self.markets.items()
+                 if m.get("peer_id") == token_id or
+                 (m.get("condition_id") and self.markets.get(m.get("peer_id"), {}).get("condition_id") == m.get("condition_id"))),
+                None
+            )
+            # Also check if any existing token claims this token as its peer
+            if not resolved_peer:
+                resolved_peer = next(
+                    (tid for tid, m in self.markets.items() if m.get("peer_id") == token_id),
+                    None
+                )
+            self.markets[token_id] = {
+                "odds": None, "ltp": None, "history": deque(maxlen=60),
+                "velocity": 0.0, "bids": [], "asks": [], "depth": 0.0,
+                "win_start": None, "win_end": None,
+                "slug": "", "peer_id": resolved_peer, "condition_id": None,
+            }
+            if resolved_peer:
+                logger.info("[FEED] subscribe_token: Resolved peer_id %s...→%s...", token_id[:12], resolved_peer[:12])
+            else:
+                logger.warning("[FEED] subscribe_token: Could not resolve peer_id for %s... — Hedge Logic may be degraded", token_id[:12])
+
+        # If WS is connected, subscribe now
+        if self._ws:
+            try:
+                await self._ws.send(json.dumps({
+                    "assets_ids": [token_id],
+                    "type": "market",
+                }))
+                self._subscribed_tids.add(token_id)
+                logger.info("[FEED] Dynamically subscribed to token %s", token_id[:20])
+                # Seed initial odds via REST so _evaluate() has a starting price
+                await self._seed_from_book([token_id])
+            except Exception as e:
+                logger.warning("[FEED] Dynamic WS subscribe failed for %s: %s", token_id[:20], e)
+        else:
+            # WS not connected — mark it so it gets picked up on next reconnect
+            logger.debug("[FEED] WS not connected — %s will subscribe on next reconnect", token_id[:20])
+
+    async def _seed_from_book(self, tids: list):
+        """
+        High-fidelity initialization: Uses Orderbook + Last Trade Price + Parity.
+        Replaces legacy /midpoint seeding which is inaccurate for 5m markets.
+        """
+        if not tids: return
         try:
             for tid in tids:
+                # 1. Primary side fetch
+                await self.fetch_book(tid)
+                
+                # 2. Check for mirrored parity if the current side is thin
                 m = self.markets.get(tid)
-                if not m or m["odds"] is not None: continue
+                if not m: continue
                 
-                async with self._session.get(
-                    f"{POLYMARKET_CLOB_URL}/midpoint",
-                    params={"token_id": tid},
-                    timeout=aiohttp.ClientTimeout(total=5)
-                ) as resp:
-                    d = await resp.json()
-                
-                mid = float(d.get("mid", 0))
-                if mid > 0:
-                    m["odds"] = mid
-                    m["bid"]  = mid - 0.005 # Conservative seed for Risk Manager
-                    m["ask"]  = mid + 0.005
-                    m["history"].append((time.time(), mid))
-                    self._update_velocity(tid)
-                    
-                    # Complementary seed
-                    peer_id = m.get("peer_id")
-                    if peer_id and peer_id in self.markets:
-                        comp_price = calculate_hedge_price(mid)
-                        pm = self.markets[peer_id]
-                        pm["odds"] = comp_price
-                        pm["bid"]  = comp_price - 0.005
-                        pm["ask"]  = comp_price + 0.005
-            
-            logger.info("Odds seeded via REST for %d markets", len(self.markets))
+                has_book = m.get("bids") and m.get("asks")
+                if not has_book and m.get("peer_id"):
+                    # This side is blank, try to seed from peer parity
+                    peer_id = m["peer_id"]
+                    await self.fetch_book(peer_id)
+                    pm = self.markets.get(peer_id)
+                    if pm and pm.get("odds"):
+                        m["odds"] = round(1.0 - pm["odds"], 4)
+                        logger.debug("Seeding %s via peer parity: %.3f", tid[:12], m["odds"])
+
+            logger.info("Sight Restored: Seeded %d markets via Orderbook/LTP", len(tids))
         except Exception as e:
-            logger.debug("Odds seed error: %s", e)
+            logger.debug("Seed error: %s", e)
 
     async def resubscribe(self):
         """
@@ -538,45 +634,65 @@ class PolymarketFeed:
             logger.debug("Resubscribe skipped: %s", e)
 
     def _handle(self, raw: str):
-        """Processes incoming WebSocket messages with Total Vision & Wide Debug."""
+        """Processes incoming WebSocket messages with LTP + Spread awareness."""
         try:
-            # ── Wide Debug: Print full raw JSON for first 10 messages ──
-            if self._debug_count < 10:
-                print(f"\n>>> WIDE DEBUG WS RAW ({self._debug_count}):\n{raw}\n")
-                self._debug_count += 1
-
             msg = json.loads(raw)
             self._msg_count = getattr(self, "_msg_count", 0) + 1
-            
+
             # Polymarket CLOB often sends batches as a list
             events = msg if isinstance(msg, list) else [msg]
-            
+
             for event in events:
                 if not isinstance(event, dict): continue
-                
+
                 # Unwrap nested data (standard CLOB pattern)
                 data = event.get("data") if "data" in event else event
                 if not isinstance(data, dict): continue
-                
-                # KEY FIX: token_id is the source of truth for price updates
+
                 tid = data.get("token_id") or data.get("asset_id") or data.get("market_id")
                 if not tid or tid not in self.markets: continue
-                
-                # ── Price Change Update ──
+
+                m_type = event.get("event_type") or event.get("type")
+
+                # ── 1. Update Price (Midpoint/Market) ──
                 price = data.get("price")
+
                 if price is not None:
                     price = float(price)
-                    self.markets[tid]["odds"] = price
-                    self.markets[tid]["history"].append((time.time(), price))
+                    now_ts = time.time()
+
+                    # ── 2. Update Trade (Reality Source) ──
+                    if m_type == "trade":
+                        self.markets[tid]["ltp"] = price
+                        # Rule: If spread is wide, LTP wins for valuation
+                        bid = self.markets[tid].get("bid", 0)
+                        ask = self.markets[tid].get("ask", 0)
+                        if bid and ask and (ask - bid) > 0.10:
+                            self.markets[tid]["odds"] = price
+                    else:
+                        # Standard market midpoint update
+                        self.markets[tid]["odds"] = price
+
+                    self.markets[tid]["history"].append((now_ts, price))
                     self._update_velocity(tid)
-                    
+
                     # Proof of Vision Log
-                    print(f">>> EYES OPEN: {tid} moved to {price}")
-                    
+                    print(f">>> EYES OPEN: {tid[:12]} moved to {price} ({m_type})")
+
+                    # ── 3. Health Guard Update ──
+                    if self._exec_positions:
+                        for pos in self._exec_positions.values():
+                            if pos.get("token_id") == tid:
+                                pos["last_ws_update_ts"] = now_ts
+
                     # Auto-hedge logic for binary pairs
                     peer_id = self.markets[tid].get("peer_id")
                     if peer_id and peer_id in self.markets:
                         self.markets[peer_id]["odds"] = calculate_hedge_price(price)
+                        if self._exec_positions:
+                            for pos in self._exec_positions.values():
+                                if pos.get("token_id") == peer_id:
+                                    pos["last_ws_update_ts"] = now_ts
 
                 # ── L2 Book Update ──
                 book = data.get("book")
@@ -585,7 +701,7 @@ class PolymarketFeed:
                     asks = book.get("asks", [])
                     self.markets[tid]["bids"] = bids
                     self.markets[tid]["asks"] = asks
-                    
+
                     # Recalculate best bid/ask for valuation logic
                     if bids: self.markets[tid]["bid"] = float(bids[0].get("price", 0.0))
                     if asks: self.markets[tid]["ask"] = float(asks[0].get("price", 1.0))
@@ -603,14 +719,21 @@ class PolymarketFeed:
             history[-1][1] - history[0][1], 4
         ) if len(history) >= 2 else 0.0
 
-    async def _poll_fallback(self):
+    async def _poll_fallback(self, get_held_tids=None):
+        """REST polling fallback. get_held_tids is an optional callable returning the
+        set of token_ids currently held in open positions. Those are ALWAYS polled
+        regardless of whether their market window has expired."""
         while self._running:
             try:
                 now = time.time()
-                # Poll all active markets (window hasn't ended)
+                # FIX: Always include tokens held in open positions, even if their
+                # market window has expired (the exact failure mode that caused BTC/ETH
+                # positions to be abandoned). Previously only win_start<=now<=win_end
+                # tokens were polled — positions past win_end were silently skipped.
+                held_tids = get_held_tids() if callable(get_held_tids) else set()
                 active_tids = [
                     tid for tid, m in self.markets.items()
-                    if m.get("win_start", 0) <= now <= m.get("win_end", 0)
+                    if tid in held_tids or m.get("win_start", 0) <= now <= m.get("win_end", 0)
                 ]
                 
                 polled = set()
@@ -677,39 +800,55 @@ class PolymarketFeed:
                 POLYMARKET_API_KEY, POLYMARKET_API_SECRET, POLYMARKET_PASSPHRASE,
             )
 
-            creds = ApiCreds(
-                api_key        = POLYMARKET_API_KEY,
-                api_secret     = POLYMARKET_API_SECRET,
-                api_passphrase = POLYMARKET_PASSPHRASE,
-            )
-            client = ClobClient(
-                host           = POLYMARKET_CLOB_URL,
-                key            = POLYMARKET_PRIVATE_KEY,
-                chain_id       = POLYGON,
-                creds          = creds,
-                funder         = POLYMARKET_FUNDER_ADDRESS,
-                signature_type = 1,   # EOA — required for Magic/Gmail wallet
-            )
+            if getattr(self, "_clob_client", None) is None:
+                creds = ApiCreds(
+                    api_key        = POLYMARKET_API_KEY,
+                    api_secret     = POLYMARKET_API_SECRET,
+                    api_passphrase = POLYMARKET_PASSPHRASE,
+                )
+                self._clob_client = ClobClient(
+                    host           = POLYMARKET_CLOB_URL,
+                    key            = POLYMARKET_PRIVATE_KEY,
+                    chain_id       = POLYGON,
+                    creds          = creds,
+                    funder         = POLYMARKET_FUNDER_ADDRESS,
+                    signature_type = 1,   # EOA — required for Magic/Gmail wallet
+                )
+            client = self._clob_client
 
             # Round price to valid tick (0.01 increments)
             rounded_price = round(round(price / 0.01) * 0.01, 4)
 
-            # Polymarket orders are in shares, not USDC
-            shares = round(size / rounded_price, 2)
+            import math
 
-            order_args = OrderArgs(
-                token_id = token_id,
-                price    = rounded_price,
-                size     = shares,
-                side     = "BUY" if direction != "sell" else "SELL",
-            )
-
-            signed_order = client.create_order(order_args)
-            resp         = client.post_order(signed_order, OrderType.GTC)
+            if direction == "sell":
+                # SELL: GTC limit order with floored shares to never oversell
+                shares = math.floor(size * 100_000) / 100_000
+                order_args = OrderArgs(
+                    token_id = token_id,
+                    price    = rounded_price,
+                    size     = shares,
+                    side     = "SELL",
+                )
+                signed_order = client.create_order(order_args)
+                resp = client.post_order(signed_order, OrderType.GTC)
+            else:
+                # BUY: FOK market order using create_market_order (correct Polymarket API)
+                # amount = USDC to spend (maker). Builder handles shares/precision internally.
+                from py_clob_client.clob_types import MarketOrderArgs
+                usdc_amount = round(size, 2)
+                market_args = MarketOrderArgs(
+                    token_id = token_id,
+                    amount   = usdc_amount,
+                    side     = "BUY",
+                    price    = rounded_price,
+                )
+                signed_order = client.create_market_order(market_args)
+                resp = client.post_order(signed_order, OrderType.FOK)
 
             if resp and resp.get("success"):
                 filled_price = float(resp.get("price", rounded_price))
-                filled_size  = float(resp.get("size", shares))
+                filled_size  = float(resp.get("size", size))
                 logger.info(
                     "[LIVE Bot%s] %s FILLED | size=%.2f price=%.3f order_id=%s",
                     bot_id, direction.upper(), filled_size, filled_price,

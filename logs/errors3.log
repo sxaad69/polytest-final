@@ -1,0 +1,21 @@
+2026-04-03 11:11:10,501 [CRITICAL] risk.manager [Line: 266] __init__():
+[RISK] Overriding config bankrolls! Using live wallet balance $44.64 as baseline.
+
+2026-04-03 11:11:27,748 [ERROR] execution.redeemer [Line: 77] redeem():
+Redemption error: {'code': -32000, 'message': 'insufficient funds for gas * price + value: balance 0, tx cost 19151403484650000, overshot 19151403484650000'}
+
+2026-04-03 11:11:27,945 [ERROR] execution.redeemer [Line: 77] redeem():
+Redemption error: {'code': -32000, 'message': 'insufficient funds for gas * price + value: balance 0, tx cost 19151403484650000, overshot 19151403484650000'}
+
+2026-04-03 11:12:15,440 [CRITICAL] risk.manager [Line: 266] __init__():
+[RISK] Overriding config bankrolls! Using live wallet balance $44.64 as baseline.
+
+2026-04-03 11:15:01,945 [ERROR] feeds.polymarket [Line: 846] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': "order couldn't be fully filled. FOK orders are fully filled or killed."}]
+
+2026-04-03 11:16:14,315 [ERROR] feeds.polymarket [Line: 846] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': "order couldn't be fully filled. FOK orders are fully filled or killed."}]
+
+2026-04-03 11:16:35,063 [ERROR] feeds.polymarket [Line: 846] place_order():
+[LIVE BotG] Order error: PolyApiException[status_code=400, error_message={'error': "order couldn't be fully filled. FOK orders are fully filled or killed."}]
+

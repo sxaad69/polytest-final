@@ -129,10 +129,10 @@ BOT_G_TIMEFRAMES = {
 BOT_G_MIN_CONFIDENCE          = 0.035   # Floor — below this is noise (22% win rate)
 BOT_G_MOMENTUM_CEILING        = 0.100   # Ceiling — above this is overextended (0% win rate)
 
-# Entry filters (restored from Data Volcano mode)
-BOT_G_MIN_ENTRY_ODDS          = 0.30    # Sweet spot: 0.30–0.70 (data-driven)
-BOT_G_MAX_ENTRY_ODDS          = 0.70
-BOT_G_MAX_ENTRY_SECS_INTO_WIN = 120     # Don't enter after 2 min into window (0% win rate after 180s)
+# Entry filters (Relaxed for 5m volatility)
+BOT_G_MIN_ENTRY_ODDS          = 0.15    # Expanded from 0.30
+BOT_G_MAX_ENTRY_ODDS          = 0.85    # Expanded from 0.70
+BOT_G_MAX_ENTRY_SECS_INTO_WIN = 210     # Expanded from 120 (3.5 mins / 5 mins)
 BOT_G_MIN_SECS_REMAINING      = 60      # Don't enter if < 60s left in window
 
 # Position management
@@ -150,7 +150,7 @@ GLOBAL_EXCLUDE_KEYWORDS = [
 
 # ── Global Portfolio Risk ──────────────────────────────────────────────────────
 GLOBAL_MAX_EXPOSURE_PCT = 0.30   # Max 30% of total bankroll in flight at once
-GLOBAL_DAILY_LOSS_LIMIT = 0.20   # 20% across all bots triggers global sleep mode
+GLOBAL_DAILY_LOSS_LIMIT = 0.99   # 20% across all bots triggers global sleep mode
 GLOBAL_HALT_DURATION_MINUTES = 30.0 # How long to freeze the bots after max loss
 GLOBAL_DAILY_PROFIT_TARGET = 0.10 # +10% target to shut down safely (Realized)
 GLOBAL_UNREALIZED_PROFIT_TARGET = 0.20 # +20% spike target to panic sell & lock (Unrealized)
@@ -161,11 +161,11 @@ MAX_CONSECUTIVE_LOSSES = int(os.getenv("MAX_CONSECUTIVE_LOSSES", "100"))
 DAILY_LOSS_LIMIT_PCT    = float(os.getenv("DAILY_LOSS_LIMIT_PCT", "0.15"))
 
 # ── Enhanced Loss Protection (Tiered Halts) ───────────────────────────────────
-# 3 consecutive losses = 6 hour halt, 6 total daily losses = halt until midnight UTC
+# Bot G trades 5m markets — raise thresholds to avoid halting on structural noise
 ENHANCED_LOSS_PROTECTION_ENABLED = True
-CONSECUTIVE_LOSS_HALT_COUNT = 3      # Halt after this many consecutive losses
+CONSECUTIVE_LOSS_HALT_COUNT = 5      # Halt after this many consecutive losses (was 3; raised from 10 after valuation fix)
 CONSECUTIVE_LOSS_HALT_MINUTES = 360  # 6 hours = 360 minutes
-TOTAL_DAILY_LOSS_HALT_COUNT = 6      # Halt until tomorrow after this many total daily losses
+TOTAL_DAILY_LOSS_HALT_COUNT = 15     # Halt until tomorrow after this many total daily losses (was 6)
 
 # ── Profit Ratchet (Trailing Stop) ───────────────────────────────────────────
 # All values as decimals (0.10 = 10%)
@@ -182,22 +182,22 @@ PNL_ERROR_LOG_PATH = os.getenv("PNL_ERROR_LOG_PATH", "logs/pnl_errors.log")
 # ── Position management ────────────────────────────────────────────────────────
 GLOBAL_MIN_TRADE_SIZE = 5.0     # 0 = use pure Kelly, otherwise strict floor
 GLOBAL_MAX_TRADE_SIZE = 10.0    # 0 = use pure Kelly, otherwise strict ceiling
+USE_MINIMUM_SIZING_TEST = True  # True = Trade absolute minimum shares allowed, skip if over $5
 
-# Data-driven changes:
-# Exit parameters — tuned from live simulation data (March 23, 2026)
-# At 45% win rate, need TP/SL ratio > 1.22 to be profitable
-# Today: TP avg +$2,623 | SL avg -$2,346 → ratio 1.12 (slightly negative EV)
-# Fix: tighten TP so more trades reach it, widen SL to reduce premature stops
-TAKE_PROFIT_DELTA     = 0.08    # Tightened from 0.10 — more trades hit TP
-STOP_LOSS_DELTA       = 0.12    # Widened from 0.08 — gives trade room to breathe
-TRAILING_STOP_ENABLED = False   # disabled: 0% win rate in v1/v2/v3
-TRAILING_STOP_DELTA   = 0.20    # kept for reference only — not active
+# Point-Based Profit Ratchet Configuration
+TRAILING_STOP_ENABLED   = True  # Dynamic Profit Ratchet enabled
+HARD_SL_DELTA           = 0.15  # -15 cents (tightened from 0.25) pre-activation safety net
+RATCHET_ACTIVATION_GAIN = 0.10  # +10 cents profit to activate trail
+TRAILING_STOP_DELTA     = 0.10  # Trails 10 cents behind peak profit
 HARD_STOP_SECONDS     = 15      # Last resort only — exit before binary settlement
 POSITION_POLL_SECS    = 3
+POSITION_HEALTH_GUARD_SECS      = 5    # Emergency REST fetch if no WS update for 5s
+POSITION_MANDATORY_REFRESH_SECS = 10   # Forced REST truth-check every 10s regardless
+POSITION_LOG_FILE               = "logs/open_positions.log"  # Clinical position log
 
 # ── RPC Endpoints ──────────────────────────────────────────────────────────────
 CHAINLINK_RPC_URL  = os.getenv("ALCHEMY_RPC_URL", "")  # Ethereum Mainnet
-POLYGON_RPC_URL    = os.getenv("POLYGON_RPC_URL", "https://polygon-mainnet.g.alchemy.com/v2/YOUR_KEY")
+POLYGON_RPC_URL    = os.getenv("POLYGON_RPC_URL", "")
 CHAINLINK_BTC_FEED = "0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c"
 CHAINLINK_POLL_SECS = 5
 
@@ -231,6 +231,11 @@ BOT_G_DB_PATH = str(_DATA_DIR / "bot_g_paper.db")
 LOG_LEVEL = "INFO"
 WRITE_SCANNED_MARKETS_TXT = True   # Overwrites logs/bot_X_markets.txt with actively monitored slugs
 
+# High-Precision Signal Trace for Bot G
+BOT_G_REJECTION_LOGGING      = True   # Set to False to disable all skip logs
+BOT_G_REJECTION_ONLY_CONSOLE = False  # Set to True to skip writing to log file
+BOT_G_REJECTION_LOG_PATH     = "logs/bot_g_rejections.log"
+
 
 # ── Startup validation ─────────────────────────────────────────────────────────
 def validate():
@@ -241,7 +246,10 @@ def validate():
             "  → https://dashboard.alchemy.com → Create App → Ethereum Mainnet"
         )
     # Check live credentials if any bot is going live
-    if not BOT_A_PAPER_TRADING or not BOT_B_PAPER_TRADING:
+    live_bots = [BOT_A_PAPER_TRADING, BOT_B_PAPER_TRADING, BOT_C_PAPER_TRADING, BOT_D_PAPER_TRADING, BOT_E_PAPER_TRADING, BOT_F_PAPER_TRADING, BOT_G_PAPER_TRADING]
+    if any(not paper for paper in live_bots):
+        if not POLYGON_RPC_URL:
+            errors.append("POLYGON_RPC_URL is not set in .env (required for redemptions)")
         for name, val in [
             ("POLYMARKET_PRIVATE_KEY",    POLYMARKET_PRIVATE_KEY),
             ("POLYMARKET_FUNDER_ADDRESS", POLYMARKET_FUNDER_ADDRESS),

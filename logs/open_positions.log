@@ -1,0 +1,137 @@
+2026-04-03 20:21:34,579 [BOOT] Bot G reloaded 1 open trades from DB
+2026-04-03 20:21:35,648 [REMOVE] Trade #1 (ETH-short) | Market resolved >30s ago — dropped from monitor
+2026-04-03 20:21:59,719 [HEARTBEAT] Trade #2 (XRP-short) | Entry: 0.220 | Internal: 0.200 | RATCHET: OFF | Hard SL: 0.070 | Source: WS | WS: 0.0s ago | Secs to end: 180
+2026-04-03 20:22:02,720 [HEARTBEAT] Trade #2 (XRP-short) | Entry: 0.220 | Internal: 0.200 | RATCHET: OFF | Hard SL: 0.070 | Source: WS | WS: 2.2s ago | Secs to end: 177
+2026-04-03 20:22:05,721 [HEARTBEAT] Trade #2 (XRP-short) | Entry: 0.220 | Internal: 0.200 | RATCHET: OFF | Hard SL: 0.070 | Source: WS | WS: 2.1s ago | Secs to end: 174
+2026-04-03 20:22:08,926 [HEARTBEAT] Trade #2 (XRP-short) | Entry: 0.220 | Internal: 0.200 | RATCHET: OFF | Hard SL: 0.070 | Source: GUARD-REST | WS: 5.3s ago | Secs to end: 171
+2026-04-03 20:22:11,965 [HEARTBEAT] Trade #2 (XRP-short) | Entry: 0.220 | Internal: 0.200 | RATCHET: OFF | Hard SL: 0.070 | Source: MANDATORY-REST | WS: 3.0s ago | Secs to end: 168
+2026-04-03 20:22:14,966 [HEARTBEAT] Trade #2 (XRP-short) | Entry: 0.220 | Internal: 0.200 | RATCHET: OFF | Hard SL: 0.070 | Source: WS | WS: 2.5s ago | Secs to end: 165
+2026-04-03 20:22:18,004 [HEARTBEAT] Trade #2 (XRP-short) | Entry: 0.220 | Internal: 0.200 | RATCHET: OFF | Hard SL: 0.070 | Source: GUARD-REST | WS: 5.5s ago | Secs to end: 162
+2026-04-03 20:22:21,005 [HEARTBEAT] Trade #2 (XRP-short) | Entry: 0.220 | Internal: 0.200 | RATCHET: OFF | Hard SL: 0.070 | Source: WS | WS: 3.0s ago | Secs to end: 159
+2026-04-03 20:22:24,084 [HEARTBEAT] Trade #2 (XRP-short) | Entry: 0.220 | Internal: 0.200 | RATCHET: OFF | Hard SL: 0.070 | Source: MANDATORY-REST | WS: 6.0s ago | Secs to end: 156
+2026-04-03 20:22:24,085 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.300 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 1.6s ago | Secs to end: 156
+2026-04-03 20:22:27,086 [HEARTBEAT] Trade #2 (XRP-short) | Entry: 0.220 | Internal: 0.200 | RATCHET: OFF | Hard SL: 0.070 | Source: WS | WS: 0.4s ago | Secs to end: 153
+2026-04-03 20:22:27,086 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.300 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 1.6s ago | Secs to end: 153
+2026-04-03 20:22:30,087 [HEARTBEAT] Trade #2 (XRP-short) | Entry: 0.220 | Internal: 0.200 | RATCHET: OFF | Hard SL: 0.070 | Source: WS | WS: 3.4s ago | Secs to end: 150
+2026-04-03 20:22:30,087 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.300 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 0.0s ago | Secs to end: 150
+2026-04-03 20:22:33,088 [HEARTBEAT] Trade #2 (XRP-short) | Entry: 0.220 | Internal: 0.200 | RATCHET: OFF | Hard SL: 0.070 | Source: WS | WS: 1.1s ago | Secs to end: 147
+2026-04-03 20:22:33,134 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.390 | RATCHET: OFF | Hard SL: 0.200 | Source: MANDATORY-REST | WS: 1.0s ago | Secs to end: 147
+2026-04-03 20:22:36,177 [HEARTBEAT] Trade #2 (XRP-short) | Entry: 0.220 | Internal: 0.150 | RATCHET: OFF | Hard SL: 0.070 | Source: MANDATORY-REST | WS: 0.6s ago | Secs to end: 144
+2026-04-03 20:22:36,177 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.390 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 0.9s ago | Secs to end: 144
+2026-04-03 20:22:39,178 [HEARTBEAT] Trade #2 (XRP-short) | Entry: 0.220 | Internal: 0.150 | RATCHET: OFF | Hard SL: 0.070 | Source: WS | WS: 0.1s ago | Secs to end: 141
+2026-04-03 20:22:39,178 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.390 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 3.9s ago | Secs to end: 141
+2026-04-03 20:22:43,068 [HEARTBEAT] Trade #2 (XRP-short) | Entry: 0.220 | Internal: 0.150 | RATCHET: OFF | Hard SL: 0.070 | Source: WS | WS: 4.0s ago | Secs to end: 137
+2026-04-03 20:22:43,111 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.390 | RATCHET: OFF | Hard SL: 0.200 | Source: GUARD-REST | WS: 7.8s ago | Secs to end: 137
+2026-04-03 20:22:46,112 [HEARTBEAT] Trade #2 (XRP-short) | Entry: 0.220 | Internal: 0.150 | RATCHET: OFF | Hard SL: 0.070 | Source: WS | WS: 0.4s ago | Secs to end: 134
+2026-04-03 20:22:46,166 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.390 | RATCHET: OFF | Hard SL: 0.200 | Source: MANDATORY-REST | WS: 2.6s ago | Secs to end: 134
+2026-04-03 20:22:49,217 [HEARTBEAT] Trade #2 (XRP-short) | Entry: 0.220 | Internal: 0.150 | RATCHET: OFF | Hard SL: 0.070 | Source: MANDATORY-REST | WS: 0.3s ago | Secs to end: 131
+2026-04-03 20:22:49,256 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.390 | RATCHET: OFF | Hard SL: 0.200 | Source: GUARD-REST | WS: 5.7s ago | Secs to end: 131
+2026-04-03 20:22:52,257 [HEARTBEAT] Trade #2 (XRP-short) | Entry: 0.220 | Internal: 0.150 | RATCHET: OFF | Hard SL: 0.070 | Source: WS | WS: 1.4s ago | Secs to end: 128
+2026-04-03 20:22:52,257 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.390 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 1.2s ago | Secs to end: 128
+2026-04-03 20:22:55,258 [HEARTBEAT] Trade #2 (XRP-short) | Entry: 0.220 | Internal: 0.150 | RATCHET: OFF | Hard SL: 0.070 | Source: WS | WS: 2.9s ago | Secs to end: 125
+2026-04-03 20:22:55,258 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.350 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 0.1s ago | Secs to end: 125
+2026-04-03 20:22:58,311 [HEARTBEAT] Trade #2 (XRP-short) | Entry: 0.220 | Internal: 0.150 | RATCHET: OFF | Hard SL: 0.070 | Source: GUARD-REST | WS: 5.9s ago | Secs to end: 122
+2026-04-03 20:22:58,349 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.350 | RATCHET: OFF | Hard SL: 0.200 | Source: MANDATORY-REST | WS: 3.1s ago | Secs to end: 122
+2026-04-03 20:23:01,389 [HEARTBEAT] Trade #2 (XRP-short) | Entry: 0.220 | Internal: 0.150 | RATCHET: OFF | Hard SL: 0.070 | Source: MANDATORY-REST | WS: 3.0s ago | Secs to end: 119
+2026-04-03 20:23:01,389 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.350 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 0.6s ago | Secs to end: 119
+2026-04-03 20:23:04,389 [HEARTBEAT] Trade #2 (XRP-short) | Entry: 0.220 | Internal: 0.150 | RATCHET: OFF | Hard SL: 0.070 | Source: WS | WS: 0.6s ago | Secs to end: 116
+2026-04-03 20:23:04,389 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.350 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 1.8s ago | Secs to end: 116
+2026-04-03 20:23:07,390 [HEARTBEAT] Trade #2 (XRP-short) | Entry: 0.220 | Internal: 0.070 | RATCHET: OFF | Hard SL: 0.070 | Source: WS | WS: 3.6s ago | Secs to end: 113
+2026-04-03 20:23:07,391 [EXIT] Trade #2 | HARD STOP LOSS TRIGGERED | Price: 0.070
+2026-04-03 20:23:07,491 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.350 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 0.3s ago | Secs to end: 113
+2026-04-03 20:23:10,530 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.350 | RATCHET: OFF | Hard SL: 0.200 | Source: MANDATORY-REST | WS: 3.3s ago | Secs to end: 110
+2026-04-03 20:23:13,531 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.350 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 0.3s ago | Secs to end: 106
+2026-04-03 20:23:17,518 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.350 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 0.0s ago | Secs to end: 102
+2026-04-03 20:23:20,519 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.290 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 0.2s ago | Secs to end: 99
+2026-04-03 20:23:23,558 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.290 | RATCHET: OFF | Hard SL: 0.200 | Source: MANDATORY-REST | WS: 3.2s ago | Secs to end: 96
+2026-04-03 20:23:26,558 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.290 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 0.4s ago | Secs to end: 93
+2026-04-03 20:23:29,559 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.290 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 0.5s ago | Secs to end: 90
+2026-04-03 20:23:32,560 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.270 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 0.1s ago | Secs to end: 87
+2026-04-03 20:23:35,598 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.240 | RATCHET: OFF | Hard SL: 0.200 | Source: MANDATORY-REST | WS: 0.1s ago | Secs to end: 84
+2026-04-03 20:23:38,599 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.240 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 1.2s ago | Secs to end: 81
+2026-04-03 20:23:41,600 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.240 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 4.2s ago | Secs to end: 78
+2026-04-03 20:23:44,601 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.240 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 0.3s ago | Secs to end: 75
+2026-04-03 20:23:47,641 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.230 | RATCHET: OFF | Hard SL: 0.200 | Source: MANDATORY-REST | WS: 1.6s ago | Secs to end: 72
+2026-04-03 20:23:51,909 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.230 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 0.0s ago | Secs to end: 68
+2026-04-03 20:23:54,910 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.220 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 3.0s ago | Secs to end: 65
+2026-04-03 20:23:57,949 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.220 | RATCHET: OFF | Hard SL: 0.200 | Source: MANDATORY-REST | WS: 1.6s ago | Secs to end: 62
+2026-04-03 20:24:00,950 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.220 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 0.4s ago | Secs to end: 59
+2026-04-03 20:24:03,951 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.220 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 0.5s ago | Secs to end: 56
+2026-04-03 20:24:06,952 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.330 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 0.2s ago | Secs to end: 53
+2026-04-03 20:24:09,993 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.360 | RATCHET: OFF | Hard SL: 0.200 | Source: MANDATORY-REST | WS: 3.2s ago | Secs to end: 50
+2026-04-03 20:24:13,032 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.360 | RATCHET: OFF | Hard SL: 0.200 | Source: GUARD-REST | WS: 6.2s ago | Secs to end: 47
+2026-04-03 20:24:16,033 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.360 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 3.0s ago | Secs to end: 44
+2026-04-03 20:24:19,034 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.360 | RATCHET: OFF | Hard SL: 0.200 | Source: WS | WS: 0.3s ago | Secs to end: 41
+2026-04-03 20:24:22,070 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.680 | RATCHET: OFF | Hard SL: 0.200 | Source: MANDATORY-REST | WS: 0.2s ago | Secs to end: 38
+2026-04-03 20:24:26,560 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.680 | RATCHET: ON | SL: 0.580 | Peak: 0.680 | Source: WS | WS: 0.0s ago | Secs to end: 33
+2026-04-03 20:24:29,561 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.930 | RATCHET: ON | SL: 0.580 | Peak: 0.680 | Source: WS | WS: 1.3s ago | Secs to end: 30
+2026-04-03 20:24:32,605 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.960 | RATCHET: ON | SL: 0.830 | Peak: 0.930 | Source: MANDATORY-REST | WS: 0.2s ago | Secs to end: 27
+2026-04-03 20:24:35,610 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.960 | RATCHET: ON | SL: 0.860 | Peak: 0.960 | Source: WS | WS: 0.0s ago | Secs to end: 24
+2026-04-03 20:24:38,611 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.960 | RATCHET: ON | SL: 0.860 | Peak: 0.960 | Source: WS | WS: 0.5s ago | Secs to end: 21
+2026-04-03 20:24:41,612 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.980 | RATCHET: ON | SL: 0.860 | Peak: 0.960 | Source: WS | WS: 0.1s ago | Secs to end: 18
+2026-04-03 20:24:44,653 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.980 | RATCHET: ON | SL: 0.880 | Peak: 0.980 | Source: MANDATORY-REST | WS: 0.2s ago | Secs to end: 15
+2026-04-03 20:24:47,654 [HEARTBEAT] Trade #3 (SOL-short) | Entry: 0.350 | Internal: 0.980 | RATCHET: ON | SL: 0.880 | Peak: 0.980 | Source: WS | WS: 1.1s ago | Secs to end: 12
+2026-04-03 20:25:47,822 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.440 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 0.0s ago | Secs to end: 252
+2026-04-03 20:25:50,823 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.470 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.0s ago | Secs to end: 249
+2026-04-03 20:25:53,865 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.500 | RATCHET: OFF | Hard SL: 0.350 | Source: GUARD-REST | WS: 6.0s ago | Secs to end: 246
+2026-04-03 20:25:56,866 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.500 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.0s ago | Secs to end: 243
+2026-04-03 20:25:59,965 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.500 | RATCHET: OFF | Hard SL: 0.350 | Source: MANDATORY-REST | WS: 6.0s ago | Secs to end: 240
+2026-04-03 20:26:02,967 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.500 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.0s ago | Secs to end: 237
+2026-04-03 20:26:06,023 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.500 | RATCHET: OFF | Hard SL: 0.350 | Source: GUARD-REST | WS: 6.0s ago | Secs to end: 234
+2026-04-03 20:26:10,601 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.500 | RATCHET: OFF | Hard SL: 0.350 | Source: MANDATORY-REST | WS: 4.5s ago | Secs to end: 229
+2026-04-03 20:26:13,640 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.500 | RATCHET: OFF | Hard SL: 0.350 | Source: GUARD-REST | WS: 7.6s ago | Secs to end: 226
+2026-04-03 20:26:16,641 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.500 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.0s ago | Secs to end: 223
+2026-04-03 20:26:19,688 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.500 | RATCHET: OFF | Hard SL: 0.350 | Source: GUARD-REST | WS: 6.0s ago | Secs to end: 220
+2026-04-03 20:26:22,728 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.500 | RATCHET: OFF | Hard SL: 0.350 | Source: MANDATORY-REST | WS: 3.0s ago | Secs to end: 217
+2026-04-03 20:26:25,768 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.500 | RATCHET: OFF | Hard SL: 0.350 | Source: GUARD-REST | WS: 6.0s ago | Secs to end: 214
+2026-04-03 20:26:28,769 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.500 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.0s ago | Secs to end: 211
+2026-04-03 20:26:31,807 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.530 | RATCHET: OFF | Hard SL: 0.350 | Source: GUARD-REST | WS: 6.0s ago | Secs to end: 208
+2026-04-03 20:26:34,860 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.530 | RATCHET: OFF | Hard SL: 0.350 | Source: MANDATORY-REST | WS: 3.0s ago | Secs to end: 205
+2026-04-03 20:26:37,899 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.530 | RATCHET: OFF | Hard SL: 0.350 | Source: GUARD-REST | WS: 6.1s ago | Secs to end: 202
+2026-04-03 20:26:40,900 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.530 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.0s ago | Secs to end: 199
+2026-04-03 20:26:43,938 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.530 | RATCHET: OFF | Hard SL: 0.350 | Source: GUARD-REST | WS: 6.0s ago | Secs to end: 196
+2026-04-03 20:26:46,984 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.530 | RATCHET: OFF | Hard SL: 0.350 | Source: MANDATORY-REST | WS: 3.0s ago | Secs to end: 193
+2026-04-03 20:26:50,024 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.530 | RATCHET: OFF | Hard SL: 0.350 | Source: GUARD-REST | WS: 6.0s ago | Secs to end: 190
+2026-04-03 20:26:53,025 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.530 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.0s ago | Secs to end: 187
+2026-04-03 20:26:58,399 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.430 | RATCHET: OFF | Hard SL: 0.350 | Source: MANDATORY-REST | WS: 8.3s ago | Secs to end: 182
+2026-04-03 20:27:01,400 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.430 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.0s ago | Secs to end: 179
+2026-04-03 20:27:04,445 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.440 | RATCHET: OFF | Hard SL: 0.350 | Source: GUARD-REST | WS: 6.0s ago | Secs to end: 176
+2026-04-03 20:27:07,446 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.440 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.0s ago | Secs to end: 173
+2026-04-03 20:27:10,778 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.560 | RATCHET: OFF | Hard SL: 0.350 | Source: MANDATORY-REST | WS: 6.2s ago | Secs to end: 169
+2026-04-03 20:27:13,783 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.560 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.1s ago | Secs to end: 166
+2026-04-03 20:27:16,824 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.560 | RATCHET: OFF | Hard SL: 0.350 | Source: GUARD-REST | WS: 6.1s ago | Secs to end: 163
+2026-04-03 20:27:19,825 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.560 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.0s ago | Secs to end: 160
+2026-04-03 20:27:23,087 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.480 | RATCHET: OFF | Hard SL: 0.350 | Source: MANDATORY-REST | WS: 6.2s ago | Secs to end: 157
+2026-04-03 20:27:26,090 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.480 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.0s ago | Secs to end: 154
+2026-04-03 20:27:29,130 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.480 | RATCHET: OFF | Hard SL: 0.350 | Source: GUARD-REST | WS: 6.0s ago | Secs to end: 151
+2026-04-03 20:27:32,131 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.480 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.0s ago | Secs to end: 148
+2026-04-03 20:27:35,463 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.440 | RATCHET: OFF | Hard SL: 0.350 | Source: MANDATORY-REST | WS: 6.3s ago | Secs to end: 145
+2026-04-03 20:27:38,464 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.440 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.0s ago | Secs to end: 142
+2026-04-03 20:27:41,504 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.430 | RATCHET: OFF | Hard SL: 0.350 | Source: GUARD-REST | WS: 6.0s ago | Secs to end: 139
+2026-04-03 20:27:44,506 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.430 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.0s ago | Secs to end: 135
+2026-04-03 20:27:47,780 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.430 | RATCHET: OFF | Hard SL: 0.350 | Source: MANDATORY-REST | WS: 6.2s ago | Secs to end: 132
+2026-04-03 20:27:50,781 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.430 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.0s ago | Secs to end: 129
+2026-04-03 20:27:53,820 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.430 | RATCHET: OFF | Hard SL: 0.350 | Source: GUARD-REST | WS: 6.0s ago | Secs to end: 126
+2026-04-03 20:27:56,821 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.430 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.0s ago | Secs to end: 123
+2026-04-03 20:28:00,184 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.420 | RATCHET: OFF | Hard SL: 0.350 | Source: MANDATORY-REST | WS: 6.3s ago | Secs to end: 120
+2026-04-03 20:28:03,186 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.420 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.0s ago | Secs to end: 117
+2026-04-03 20:28:06,227 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.420 | RATCHET: OFF | Hard SL: 0.350 | Source: GUARD-REST | WS: 6.0s ago | Secs to end: 114
+2026-04-03 20:28:09,229 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.420 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.0s ago | Secs to end: 111
+2026-04-03 20:28:12,566 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.420 | RATCHET: OFF | Hard SL: 0.350 | Source: MANDATORY-REST | WS: 6.3s ago | Secs to end: 108
+2026-04-03 20:28:15,567 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.420 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.0s ago | Secs to end: 104
+2026-04-03 20:28:18,607 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.390 | RATCHET: OFF | Hard SL: 0.350 | Source: GUARD-REST | WS: 6.0s ago | Secs to end: 101
+2026-04-03 20:28:21,608 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.390 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.0s ago | Secs to end: 98
+2026-04-03 20:28:24,935 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.390 | RATCHET: OFF | Hard SL: 0.350 | Source: MANDATORY-REST | WS: 6.3s ago | Secs to end: 95
+2026-04-03 20:28:27,935 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.390 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.0s ago | Secs to end: 92
+2026-04-03 20:28:30,975 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.390 | RATCHET: OFF | Hard SL: 0.350 | Source: GUARD-REST | WS: 6.0s ago | Secs to end: 89
+2026-04-03 20:28:33,976 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.390 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.0s ago | Secs to end: 86
+2026-04-03 20:28:37,218 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.390 | RATCHET: OFF | Hard SL: 0.350 | Source: MANDATORY-REST | WS: 6.2s ago | Secs to end: 83
+2026-04-03 20:28:40,219 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.390 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 3.0s ago | Secs to end: 80
+2026-04-03 20:28:43,258 [HEARTBEAT] Trade #4 (SOL-short) | Entry: 0.500 | Internal: 0.290 | RATCHET: OFF | Hard SL: 0.350 | Source: GUARD-REST | WS: 6.0s ago | Secs to end: 77
+2026-04-03 20:28:43,258 [EXIT] Trade #4 | HARD STOP LOSS TRIGGERED | Price: 0.290
+2026-04-03 20:30:31,633 [HEARTBEAT] Trade #5 (BNB-short) | Entry: 0.500 | Internal: 0.500 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 2.5s ago | Secs to end: 268
+2026-04-03 20:30:31,633 [HEARTBEAT] Trade #6 (XRP-short) | Entry: 0.690 | Internal: 0.690 | RATCHET: OFF | Hard SL: 0.540 | Source: WS | WS: 0.9s ago | Secs to end: 268
+2026-04-03 20:30:34,633 [HEARTBEAT] Trade #5 (BNB-short) | Entry: 0.500 | Internal: 0.500 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 0.1s ago | Secs to end: 265
+2026-04-03 20:30:34,634 [HEARTBEAT] Trade #6 (XRP-short) | Entry: 0.690 | Internal: 0.690 | RATCHET: OFF | Hard SL: 0.540 | Source: WS | WS: 0.8s ago | Secs to end: 265
+2026-04-03 20:30:37,634 [HEARTBEAT] Trade #5 (BNB-short) | Entry: 0.500 | Internal: 0.500 | RATCHET: OFF | Hard SL: 0.350 | Source: WS | WS: 2.0s ago | Secs to end: 262
+2026-04-03 20:30:37,634 [HEARTBEAT] Trade #6 (XRP-short) | Entry: 0.690 | Internal: 0.690 | RATCHET: OFF | Hard SL: 0.540 | Source: WS | WS: 3.8s ago | Secs to end: 262

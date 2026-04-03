@@ -60,7 +60,7 @@ class Redeemer:
             })
             
             signed_tx = self.w3.eth.account.sign_transaction(tx, POLYMARKET_PRIVATE_KEY)
-            tx_hash = self.w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+            tx_hash = self.w3.eth.send_raw_transaction(signed_tx.raw_transaction)
             
             logger.info("Redemption TX sent | condition=%s... | hash=%s", 
                         condition_id[:10], tx_hash.hex())

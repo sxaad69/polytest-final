@@ -11,14 +11,34 @@ Changes from data analysis:
 
 import asyncio
 import logging
+import logging.handlers
+import os
 import time
 from datetime import datetime
 from config import (
-    TAKE_PROFIT_DELTA, TRAILING_STOP_DELTA, TRAILING_STOP_ENABLED,
-    HARD_STOP_SECONDS, POSITION_POLL_SECS, STOP_LOSS_DELTA,
+    HARD_STOP_SECONDS, POSITION_POLL_SECS,
+    POSITION_HEALTH_GUARD_SECS, POSITION_MANDATORY_REFRESH_SECS, POSITION_LOG_FILE,
 )
 
 logger = logging.getLogger(__name__)
+
+# ── Clinical Position Logger ────────────────────────────────────────────────
+# Dedicated log for every position heartbeat, guard fire, and price evaluation.
+# Written to logs/open_positions.log (auto-created, rotating 5MB x 3 backups).
+def _build_position_logger() -> logging.Logger:
+    pos_log = logging.getLogger("open_positions")
+    if not pos_log.handlers:
+        os.makedirs(os.path.dirname(POSITION_LOG_FILE) if os.path.dirname(POSITION_LOG_FILE) else ".", exist_ok=True)
+        handler = logging.handlers.RotatingFileHandler(
+            POSITION_LOG_FILE, maxBytes=5 * 1024 * 1024, backupCount=3
+        )
+        handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
+        pos_log.addHandler(handler)
+        pos_log.setLevel(logging.DEBUG)
+        pos_log.propagate = False
+    return pos_log
+
+pos_logger = _build_position_logger()
 
 
 class BankrollTracker:
@@ -64,21 +84,36 @@ class ExecutionLayer:
             if not token: # Very old DB entry compat
                 token = self.poly.up_token_id if t.get("direction") == "long" else self.poly.down_token_id
             
+            entry_odds = t.get("entry_odds", 0.0)
+            now = time.time()
             self._positions[tid] = {
-                "trade_id":   tid,
-                "direction":  t.get("direction"),
-                "token_id":   token,
-                "market_id":  t.get("market_id"),
-                "entry_odds": t.get("entry_odds", 0.0),
-                "peak_odds":  t.get("peak_odds", 0.0),
-                "stake_usdc": stake,
-                "window_end": datetime.fromisoformat(t["window_end"]).timestamp() if t.get("window_end") else None,
-                "confidence": 0.0,  # Legacy restored missing confidence
+                "trade_id":          tid,
+                "direction":         t.get("direction"),
+                "token_id":          token,
+                "market_id":         t.get("market_id"),
+                "entry_odds":        entry_odds,
+                "peak_odds":         t.get("peak_odds", 0.0),
+                "stake_usdc":        stake,
+                "size":              round(stake / entry_odds, 6) if entry_odds > 0 else 0.0,
+                "window_end":        datetime.fromisoformat(t["window_end"]).timestamp() if t.get("window_end") else None,
+                "confidence":        0.0,  # Legacy restored missing confidence
+                "asset":             t.get("asset", "CRYPTO"),
+                # Health tracking timestamps
+                "last_ws_update_ts": now,
+                "last_refresh_ts":   now,
             }
+            # Initialize with the standard Hard SL. The evaluation loop's profit ratchet 
+            # will dynamically take over once the market moves into profit.
+            import config
+            hard_sl_delta = getattr(config, "HARD_SL_DELTA", 0.15)
+            self._positions[tid]["tp_target"] = 0.999
+            self._positions[tid]["sl_target"] = round(max(0.001, entry_odds - hard_sl_delta), 4)
+            
             self.bankroll.reserve(stake)
         
         if open_trades:
             logger.info("[Bot%s] Reloaded %d active trades from database", self.bot_id, len(open_trades))
+            pos_logger.info("[BOOT] Bot %s reloaded %d open trades from DB", self.bot_id, len(open_trades))
 
     # ── Entry ──────────────────────────────────────────────────────────────────
 
@@ -127,13 +162,31 @@ class ExecutionLayer:
             logger.warning("[Bot%s] No odds/token — skipping entry", self.bot_id)
             return None
 
-        # TEMPORARY TESTING CAP: Limit stake to ~$5 (minimum 5 shares)
-        # This limits risk while we verify PnL calculation logic
-        # TODO: Remove after PnL verification complete
-        MAX_TEST_STAKE = 5.00  # Maximum $5 per position for testing
-        if stake > MAX_TEST_STAKE:
-            stake = MAX_TEST_STAKE
-            logger.info("[Bot%s] TESTING MODE: Stake capped at $%.2f", self.bot_id, stake)
+        import config
+        if getattr(config, "USE_MINIMUM_SIZING_TEST", False):
+            # True Minimum Sizing logic
+            # Polymarket API enforces a hard minimum of 5 shares per order.
+            # Use the already-initialized polymarket_client (has credentials) to fetch Ask price.
+            ask_price = entry_odds  # safe default
+            if hasattr(self, 'global_risk') and self.global_risk and getattr(self.global_risk, 'polymarket_client', None):
+                fetched = self.global_risk.polymarket_client.get_current_price(token_id, mode="ask")
+                if fetched and fetched > 0:
+                    ask_price = fetched
+
+            # Add a 1% slippage buffer so final share count >= 5.0 after exchange division
+            min_stake = (5.0 * ask_price) * 1.01
+
+            # Use max(min_stake, config) to respect any per-bot floor
+            stake = max(min_stake, getattr(config, f"BOT_{self.bot_id}_MIN_STAKE", 1.0))
+            
+            MAX_TEST_STAKE = 5.00
+            if stake > MAX_TEST_STAKE:
+                logger.warning(
+                    "[Bot%s] Minimum required stake $%.2f exceeds testing cap of $%.2f. Skipping.", 
+                    self.bot_id, stake, MAX_TEST_STAKE
+                )
+                return None
+            logger.info("[Bot%s] TESTING MODE: Using minimum calculated stake $%.2f", self.bot_id, stake)
 
         order = await self.poly.place_order(
             direction, token_id, stake, entry_odds, self.bot_id,
@@ -175,19 +228,30 @@ class ExecutionLayer:
         position_size = stake / filled if filled > 0 else 0
         
         self._positions[trade_id] = {
-            "trade_id":   trade_id,
-            "direction":  direction,
-            "token_id":   token_id,
-            "market_id":  market_id,
-            "entry_odds": filled,
-            "peak_odds":  filled,
-            "stake_usdc": stake,
-            "size":       position_size,  # SHARES for sell orders
-            "window_end": win_end,
-            "asset":      asset,
-            "slug":       slug,
-            "confidence": confidence,
+            "trade_id":          trade_id,
+            "direction":         direction,
+            "token_id":          token_id,
+            "market_id":         market_id,
+            "entry_odds":        filled,
+            "peak_odds":         filled,
+            "stake_usdc":        stake,
+            "size":              position_size,  # SHARES for sell orders
+            "window_end":        win_end,
+            "asset":             asset,
+            "slug":              slug,
+            "confidence":        confidence,
+            # Health tracking timestamps — initialized to now
+            "last_ws_update_ts": time.time(),
+            "last_refresh_ts":   time.time(),
         }
+        
+        # Calculate and store targets (replaced by dynamic Ratchet algorithm)
+        pass
+        
+        # CRITICAL: Subscribe this token's WS feed so TP/SL have live prices
+        # Without this, _evaluate() can't see real-time price moves for new positions
+        await self.poly.subscribe_token(token_id)
+        
         self.bankroll.reserve(stake)
         logger.info("[Bot%s][%s] ENTER | id=%s dir=%s odds=%.3f stake=%.2f",
                     self.bot_id,
@@ -212,64 +276,134 @@ class ExecutionLayer:
             await self._evaluate(tid, pos)
 
     async def _evaluate(self, trade_id: int, pos: dict):
-        direction = pos.get("direction")
-        win_end = pos.get("window_end")
+        direction  = pos.get("direction")
+        token_id   = pos.get("token_id")
+        win_end    = pos.get("window_end")
+        asset      = pos.get("asset", "CRYPTO")
+        entry_odds = pos.get("entry_odds", 0.0)
         secs_to_end = (win_end - time.time()) if win_end else 999999
         
-        # Use the specific market data for this token
-        market = self.poly.markets.get(pos["token_id"])
-        if market:
-            current_odds = market.get("odds")
-        else:
-            # Fallback for legacy UP/DOWN logic
-            current_odds = self.poly.up_odds if direction == "long" else self.poly.down_odds
-
-        if not current_odds:
+        if secs_to_end < -30:
+            logger.info("[Bot%s] Position %s in resolved market — removing from active monitor",
+                        self.bot_id, trade_id)
+            pos_logger.info("[REMOVE] Trade #%s (%s-%s) | Market resolved >30s ago — dropped from monitor",
+                            trade_id, asset, direction)
+            if trade_id in self._positions:
+                del self._positions[trade_id]
             return
 
-        # Update peak odds
-        if current_odds > pos["peak_odds"]:
+        now = time.time()
+        refresh_source = "WS"
+
+        # ── 5s/10s Proactive Refreshes ───────────────────────────────────────
+        secs_since_ws = now - pos.get("last_ws_update_ts", 0)
+        if secs_since_ws > POSITION_HEALTH_GUARD_SECS:
+            try:
+                await self.poly.fetch_book(token_id)
+                pos["last_ws_update_ts"] = time.time()
+                refresh_source = "GUARD-REST"
+            except Exception: pass
+
+        secs_since_refresh = now - pos.get("last_refresh_ts", 0)
+        if secs_since_refresh > POSITION_MANDATORY_REFRESH_SECS:
+            try:
+                await self.poly.fetch_book(token_id)
+                pos["last_refresh_ts"] = time.time()
+                refresh_source = "MANDATORY-REST"
+            except Exception: pass
+
+        # ── High-Fidelity Valuation (The "Fair Exit" Rule) ───────────────────
+        # For Polymarket 5m binary markets, the orderbook always has bid=0.01
+        # and ask=0.99 by structural design (spread = 0.98). Using best_bid
+        # as the valuation when spread is wide would give 0.01 for EVERY
+        # position, triggering false stop-losses instantly.
+        # Rule: tight spread (<=0.10) → use midpoint; wide spread → use LTP.
+        market = self.poly.markets.get(token_id)
+        if not market: return
+        
+        bids = market.get("bids", [])
+        best_bid = float(bids[0]["price"]) if bids else None
+        ask_price = float(market.get("asks", [{"price": 1.0}])[0]["price"])
+        spread = ask_price - (best_bid or 0)
+        ltp = market.get("ltp")
+
+        if best_bid and spread <= 0.10:
+            # Tight spread: midpoint is reliable
+            current_odds = (best_bid + ask_price) / 2
+        elif ltp:
+            # Wide spread (structural): LTP is the reality source
+            current_odds = ltp
+        elif best_bid:
+            # LTP unavailable: fall back to best_bid
+            current_odds = best_bid
+        else:
+            current_odds = market.get("odds")
+
+        # ── Clinical Heartbeat & Ratchet Target Logic ─────────────────────────
+        import config
+        current_gain = current_odds - entry_odds if current_odds is not None else 0.0
+        peak_gain    = pos.get("peak_odds", entry_odds) - entry_odds
+
+        # Heartbeat String formatting
+        is_ratchet_on = False
+        hard_sl_target = entry_odds - getattr(config, "HARD_SL_DELTA", 0.15)
+        stop_target = hard_sl_target
+        
+        if peak_gain >= getattr(config, "RATCHET_ACTIVATION_GAIN", 0.10):
+            is_ratchet_on = True
+            stop_target = max(pos["peak_odds"] - getattr(config, "TRAILING_STOP_DELTA", 0.10), entry_odds + 0.005)
+            status_str = f"RATCHET: ON | SL: {stop_target:.3f} | Peak: {pos.get('peak_odds', entry_odds):.3f}"
+        else:
+            status_str = f"RATCHET: OFF | Hard SL: {hard_sl_target:.3f}"
+
+        pos_logger.info(
+            "[HEARTBEAT] Trade #%s (%s-%s) | Entry: %.3f | Internal: %s | "
+            "%s | Source: %s | WS: %.1fs ago | Secs to end: %.0f",
+            trade_id, asset, direction, entry_odds,
+            f"{current_odds:.3f}" if current_odds is not None else "NO-PRICE",
+            status_str,
+            refresh_source, secs_since_ws, secs_to_end
+        )
+
+        if current_odds is None: return
+
+        # Update peak odds dynamically
+        if current_odds > pos.get("peak_odds", entry_odds):
             pos["peak_odds"] = current_odds
             self.db.update_peak(trade_id, current_odds)
 
-        # ── 3-Tier Exit Hierarchy (applies to ALL bots) ─────────────────────
+        # ── Evaluation ────────────────────────────────────────────────────────
+        if getattr(config, "TRAILING_STOP_ENABLED", True):
+            # Recalculate gains after peak update just to be 100% accurate on the edge tick
+            current_gain = current_odds - entry_odds
+            peak_gain    = pos["peak_odds"] - entry_odds
+            
+            # 1. Hard SL Trapdoor
+            if current_gain <= -getattr(config, "HARD_SL_DELTA", 0.15):
+                logger.info("[Bot%s] Position %s reached Hard SL (at %.3f)", self.bot_id, trade_id, current_odds)
+                pos_logger.info("[EXIT] Trade #%s | HARD STOP LOSS TRIGGERED | Price: %.3f", trade_id, current_odds)
+                await self._exit(trade_id, pos, current_odds, "hard_sl_hit")
+                return
 
-        # TIER 1: Take Profit — exit when price rises TP_DELTA above entry
-        # Checked first so winning trades exit before time-based stops interfere
-        if current_odds >= pos["entry_odds"] + TAKE_PROFIT_DELTA:
-            await self._exit(trade_id, pos, current_odds, "take_profit")
-            return
+            # 2. Profit Ratchet Evaluation
+            if peak_gain >= getattr(config, "RATCHET_ACTIVATION_GAIN", 0.10):
+                stop_target = pos["peak_odds"] - getattr(config, "TRAILING_STOP_DELTA", 0.10)
+                # STRICT LOCK: Ensure Stop Loss is never worse than Breakeven.
+                minimum_safe_exit = entry_odds + 0.005 
+                stop_target = max(stop_target, minimum_safe_exit)
 
-        # TIER 2: Stop Loss — exit if price drops SL_DELTA below entry
-        # Price-based: fires the moment market moves against us by 8 points
-        # Primary loss-limiting mechanism — replaces hard stop for most exits
-        if current_odds <= pos["entry_odds"] - STOP_LOSS_DELTA:
-            await self._exit(trade_id, pos, current_odds, "stop_loss")
-            return
+                if current_odds <= stop_target:
+                    logger.critical("[RATCHET] Trade %s EXITED | Peak: +%.3f | Exit: %.3f", 
+                                    trade_id, peak_gain, current_odds)
+                    pos_logger.info("[EXIT] Trade #%s | RATCHET STOP TRIGGERED | Price: %.3f Target: %.3f", 
+                                    trade_id, current_odds, stop_target)
+                    await self._exit(trade_id, pos, current_odds, "profit_ratchet_exit")
+                    return
 
-        # TIER 3: Hard Stop — last resort, force-exit before 0/1 settlement
-        # If neither TP nor SL fired, force-exit for liquidity safety.
-        # MANDATORY REFRESH: Before exiting via hard stop, fetch the absolute midpoint truth
-        if secs_to_end <= HARD_STOP_SECONDS:
-            tid = pos.get("token_id")
-            if tid:
-                try:
-                    await self.poly.fetch_book(tid)
-                    # Pull the fresh midpoint recorded by fetch_book
-                    current_odds = self.poly.markets[tid].get("odds", current_odds)
-                except Exception:
-                    pass # Fallback to last known if REST fails 
-
+        # 3. Hard Stop
+        if secs_to_end <= getattr(config, "HARD_STOP_SECONDS", 15):
             await self._exit(trade_id, pos, current_odds, "hard_stop")
             return
-
-        # Trailing stop (disabled — 0% win rate in all backtested versions)
-        if TRAILING_STOP_ENABLED:
-            peak_gain  = pos["peak_odds"] - pos["entry_odds"]
-            stop_level = pos["peak_odds"] - TRAILING_STOP_DELTA
-            if peak_gain >= 0.10 and current_odds <= stop_level:
-                await self._exit(trade_id, pos, current_odds, "trailing_stop")
-                return
 
     async def _exit(self, trade_id: int, pos: dict,
                     exit_odds: float, reason: str):
@@ -283,7 +417,10 @@ class ExecutionLayer:
         # Verify balance is available before attempting sell
         # This prevents false "balance: 0" API errors
         try:
-            balance = self.poly.get_balance() if hasattr(self.poly, 'get_balance') else 100.0
+            if hasattr(self, 'global_risk') and self.global_risk and self.global_risk.polymarket_client:
+                balance = self.global_risk.polymarket_client.get_wallet_balance()
+            else:
+                balance = 999.0
             if balance < 1.0:  # Less than $1 available
                 logger.warning(
                     "[Bot%s] EXIT DELAYED | id=%s reason=%s | Low balance: $%.2f | Retrying in 10s",
@@ -291,14 +428,46 @@ class ExecutionLayer:
                 )
                 # Don't increment attempt counter for API errors
                 await asyncio.sleep(10)
-                return
+                return False
         except Exception as e:
             logger.debug("[Bot%s] Balance check failed: %s", self.bot_id, e)
-        
-        # 1. Fire the Sell order using SHARES (not dollar amount)
+        # 1. Determine EXACT share amount to sell
+        sell_shares = pos["size"]
+        if not self.paper_trading and hasattr(self, 'global_risk') and self.global_risk and getattr(self.global_risk, 'polymarket_client', None):
+            try:
+                # Fetch actual precision ERC1155 balance from the blockchain
+                true_balance = self.global_risk.polymarket_client.get_token_balance(pos["token_id"])
+                if true_balance > 0:
+                    # CRITICAL: Truncate to 6 decimal places (floor) to ensure we NEVER
+                    # request even 0.000001 more than we actually own.
+                    import math
+                    sell_shares = math.floor(true_balance * 1_000_000) / 1_000_000
+                    logger.debug("[Bot%s] Overriding expected %f shares with SAFE TRUE balance %f shares", self.bot_id, pos["size"], sell_shares)
+                else:
+                    # Balance API returned 0 — order may not have filled yet.
+                    # Increment attempt counter. After 10 retries, give up and clean up.
+                    self._exit_attempts[trade_key] = current_attempts + 1
+                    if current_attempts + 1 >= 10:
+                        logger.error(
+                            "[Bot%s] EXIT ABANDONED | id=%s reason=%s | Balance API returned 0 for 10 consecutive checks. "
+                            "Order likely never filled. Removing from monitor. MANUAL CHECK REQUIRED.",
+                            self.bot_id, trade_id, reason
+                        )
+                        if trade_id in self._positions:
+                            del self._positions[trade_id]
+                    else:
+                        logger.warning(
+                            "[Bot%s] Live balance for %s is 0 (attempt %d/10) — order may not have filled yet. Waiting.",
+                            self.bot_id, pos["token_id"], current_attempts + 1
+                        )
+                    return False
+            except Exception as e:
+                logger.error("[Bot%s] Failed to fetch true token balance: %s. Using theoretical size.", self.bot_id, e)
+
+        # 2. Fire the Sell order using exact SHARES (not dollar amount)
         order = await self.poly.place_order(
             "sell", pos["token_id"],
-            pos["size"], exit_odds, self.bot_id,  # Use shares, not stake_usdc
+            sell_shares, exit_odds, self.bot_id,  # Use shares, not stake_usdc
             paper=self.paper_trading
         )
         
@@ -319,7 +488,7 @@ class ExecutionLayer:
                 )
             # Do NOT update DB - position is still open
             # The monitor will retry on next poll cycle (3s)
-            return
+            return False
         
         # Success! Clear attempt counter
         if trade_key in self._exit_attempts:
@@ -362,3 +531,4 @@ class ExecutionLayer:
             "[Bot%s] EXIT | id=%s reason=%s odds=%.3f pnl=%+.4f outcome=%s | SETTLED=%s",
             self.bot_id, trade_id, reason, true_exit_price, pnl, outcome, clob_id
         )
+        return True

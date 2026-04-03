@@ -132,18 +132,46 @@ class PolymarketAPIClient:
             logger.error("[POLYMARKET-API] Positions fetch failed: %s", e)
             return {"success": False, "error": str(e), "positions": [], "count": 0}
     
-    def get_current_price(self, token_id: str) -> Optional[float]:
-        """Get current mid price for a token from CLOB."""
+    def get_current_price(self, token_id: str, mode: str = "bid") -> Optional[float]:
+        """Get current price (bid, ask, or mid) for a token from CLOB."""
         try:
-            url = f"{self.clob_base}/midpoint"
+            # Use /book for bid/ask, fall back to /midpoint for mid mode or if book unavailable
+            url = f"{self.clob_base}/book"
             params = {"token_id": token_id}
             response = requests.get(url, params=params, timeout=10)
             response.raise_for_status()
             data = response.json()
-            mid = data.get("mid")
-            return float(mid) if mid is not None else None
+
+            # EXPLICIT error check — /book returns {"error": ...} for invalid/inactive tokens
+            # without raising an HTTP error, so we must check the JSON directly.
+            if "error" in data:
+                raise ValueError(f"Book API error: {data['error']}")
+
+            if mode == "bid":
+                # The highest price someone is willing to pay you (Selling price)
+                bids = data.get("bids", [])
+                if bids:
+                    return float(bids[0].get("price"))
+            elif mode == "ask":
+                # The lowest price someone is willing to sell to you (Buying price)
+                asks = data.get("asks", [])
+                if asks:
+                    return float(asks[0].get("price"))
+
+            # Fall through to midpoint if bids/asks list is empty — do NOT raise, just fall through
+            logger.debug("[POLYMARKET-API] Empty bids/asks for %s — falling back to midpoint", token_id[:20])
+
         except Exception as e:
-            logger.warning("[POLYMARKET-API] Price fetch failed for %s: %s", token_id[:20], e)
+            logger.debug("[POLYMARKET-API] /book fetch failed for %s (%s), falling back to /midpoint", token_id[:20], e)
+            # Fallback to midpoint — always reliable, just slightly optimistic
+            try:
+                m_url = f"{self.clob_base}/midpoint"
+                m_res = requests.get(m_url, params={"token_id": token_id}, timeout=5)
+                m_data = m_res.json()
+                if "error" not in m_data:
+                    return float(m_data.get("mid", 0))
+            except Exception:
+                pass
             return None
     
     def get_filled_trades(self, since: Optional[int] = None, limit: int = 500) -> list[dict]:
@@ -198,10 +226,34 @@ class PolymarketAPIClient:
         except Exception as e:
             logger.warning("[POLYMARKET-API] Balance fetch failed: %s", e)
             return 0.0
+
+    def get_token_balance(self, token_id: str) -> float:
+        """Fetch specific ERC1155 token share balance from CLOB via py_clob_client."""
+        try:
+            client = self._get_client()
+            from py_clob_client.clob_types import BalanceAllowanceParams
+            
+            params = BalanceAllowanceParams(asset_type="CONDITIONAL", token_id=token_id)
+            result = client.get_balance_allowance(params)
+            
+            # Tokens have 6 decimals just like USDC on Polymarket
+            if isinstance(result, dict):
+                balance = result.get("balance", 0)
+                return float(balance) / 1e6 if balance else 0.0
+            return 0.0
+        except Exception as e:
+            logger.warning("[POLYMARKET-API] Token balance fetch failed for %s: %s", token_id, e)
+            return 0.0
     
     def calc_unrealized_pnl(self, positions: list[dict]) -> float:
-        """Calculate unrealized PnL from open positions."""
+        """Calculate REALISTIC unrealized PnL from open positions.
+        
+        Uses Bid prices (what you can actually sell at) and subtracts
+        estimated total fees (0.2%) to give a 'True Liquidation' value.
+        """
         total = 0.0
+        ESTIMATED_TOTAL_FEE_PCT = 0.002 # 0.1% entry + 0.1% exit
+        
         for pos in positions:
             token_id = pos.get("asset_id") or pos.get("token_id", "")
             size = float(pos.get("size", 0))
@@ -211,30 +263,43 @@ class PolymarketAPIClient:
             if size == 0:
                 continue
             
-            current_price = self.get_current_price(token_id)
+            # Use "bid" mode for liquidation valuation
+            current_price = self.get_current_price(token_id, mode="bid")
             if current_price is None:
                 continue
             
             if side == "BUY":
+                # Net PnL = (Market_Bid - Entry_Price) * Size - (Transaction_Fees)
                 pnl = (current_price - avg_price) * size
+                # Subtract fees based on the total capital locked
+                friction = (size * avg_price) * ESTIMATED_TOTAL_FEE_PCT
+                pnl -= friction
             else:  # SELL / SHORT
                 pnl = (avg_price - current_price) * size
+                friction = (size * avg_price) * ESTIMATED_TOTAL_FEE_PCT
+                pnl -= friction
             
             total += pnl
         
         return total
     
-    def calc_realized_pnl(self, trades: list[dict], hours_back: int = 24) -> float:
+    def calc_realized_pnl(self, trades: list[dict], hours_back: int = 24, since_ts: float = None) -> float:
         """Calculate realized PnL from closed trades using FIFO matching.
         
         Args:
             trades: List of trade dicts
             hours_back: Only include trades from last N hours (default 24 for daily PnL)
+            since_ts: Unix timestamp — if set, only include trades AFTER this time (overrides hours_back)
         """
         from collections import defaultdict
         
         # Filter trades by timestamp
-        cutoff = datetime.utcnow() - timedelta(hours=hours_back)
+        # If since_ts provided, use that as absolute cutoff (for session-based P&L)
+        # Otherwise fall back to hours_back window (for daily P&L)
+        if since_ts is not None:
+            cutoff = datetime.utcfromtimestamp(since_ts)
+        else:
+            cutoff = datetime.utcnow() - timedelta(hours=hours_back)
         recent_trades = []
         
         for t in trades:
@@ -304,8 +369,13 @@ class PolymarketAPIClient:
         
         return total
     
-    def get_portfolio_value(self, address: str) -> Dict[str, Any]:
-        """Get portfolio value and PnL breakdown from CLOB"""
+    def get_portfolio_value(self, address: str, since_ts: float = None) -> Dict[str, Any]:
+        """Get portfolio value and PnL breakdown from CLOB.
+        
+        Args:
+            address: Wallet address
+            since_ts: Unix timestamp — if set, realized PnL only counts trades after this time
+        """
         try:
             # Get positions
             positions_result = self.get_positions(address)
@@ -323,10 +393,13 @@ class PolymarketAPIClient:
                 if current_price is not None:
                     positions_value += size * current_price
             
-            # Get filled trades (last 24 hours only, using efficient API filtering)
-            cutoff_ts = int((datetime.utcnow() - timedelta(hours=24)).timestamp())
+            # Get filled trades: use session cutoff if provided, otherwise last 24h
+            if since_ts is not None:
+                cutoff_ts = int(since_ts)
+            else:
+                cutoff_ts = int((datetime.utcnow() - timedelta(hours=24)).timestamp())
             trades = self.get_filled_trades(since=cutoff_ts, limit=100)
-            realized_pnl = self.calc_realized_pnl(trades, hours_back=24)
+            realized_pnl = self.calc_realized_pnl(trades, since_ts=since_ts)
             
             # Get actual wallet balance from CLOB
             cash_balance = self.get_wallet_balance()
@@ -349,9 +422,15 @@ class PolymarketAPIClient:
             logger.error("[POLYMARKET-API] Portfolio value fetch failed: %s", e)
             return {"success": False, "error": str(e)}
     
-    def get_pnl_summary(self, address: str, initial_bankroll: float) -> Dict[str, Any]:
-        """Get complete P&L summary for circuit breaker checks"""
-        portfolio = self.get_portfolio_value(address)
+    def get_pnl_summary(self, address: str, initial_bankroll: float, since_ts: float = None) -> Dict[str, Any]:
+        """Get complete P&L summary for circuit breaker checks.
+        
+        Args:
+            address: Wallet address
+            initial_bankroll: Starting balance for percentage calculations
+            since_ts: Unix timestamp — if set, realized PnL is session-only (from this time onwards)
+        """
+        portfolio = self.get_portfolio_value(address, since_ts=since_ts)
         
         if not portfolio["success"]:
             return {

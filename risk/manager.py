@@ -255,9 +255,31 @@ class GlobalRiskManager:
             "E": config.BOT_E_BANKROLL, "F": config.BOT_F_BANKROLL, 
             "G": config.BOT_G_BANKROLL
         }
+        
+        # In live mode, the True starting bankroll is the LIVE wallet balance!
+        # Do not use config.py defaults because they will cause massive
+        # false percentage crashes if the real wallet has less money.
+        if not self.paper_trading and self.polymarket_client:
+            try:
+                live_balance = self.polymarket_client.get_wallet_balance()
+                if live_balance > 0:
+                    logger.critical("[RISK] Overriding config bankrolls! Using live wallet balance $%.2f as baseline.", live_balance)
+                    # We override all active bots to share this true base
+                    # (since they all trade from the exact same Polymarket wallet)
+                    for k in self.initial_bankrolls:
+                        self.initial_bankrolls[k] = live_balance
+            except Exception as e:
+                logger.error("[RISK] Failed to fetch live wallet balance on startup: %s. Using config defaults.", e)
+                
         # Only sum bankrolls for BOTS THAT ARE ACTUALLY ACTIVE
         active_ids = {bot.db.bot_id if hasattr(bot, 'db') else k for k, bot in bots_dict.items()}
-        self._total_bankroll = sum(v for k, v in self.initial_bankrolls.items() if k in active_ids)
+        # If we are using live wallet, the total bankroll IS the wallet balance. 
+        # Don't double count it for each active bot if they share one wallet!
+        if not self.paper_trading and self.polymarket_client:
+            self._total_bankroll = self.initial_bankrolls.get("G", 100.0)
+        else:
+            self._total_bankroll = sum(v for k, v in self.initial_bankrolls.items() if k in active_ids)
+        self._started_at = time.time()
 
     def can_enter(self, stake: float, token_id: str = None, market_id: str = None) -> tuple:
         """Checks if a new trade would exceed global limits or create a token conflict."""
@@ -276,11 +298,16 @@ class GlobalRiskManager:
         
         return True, ""
 
-    def _get_bot_pnl(self, bid: str, bot, bot_initial: float) -> tuple:
+    def _get_bot_pnl(self, bid: str, bot, bot_initial: float, since_ts: float = None) -> tuple:
         """
         Get bot PnL based on trading mode:
         - Paper: Query DB trades table (realized P&L only)
         - Live: Call Polymarket API (realized + unrealized P&L)
+        
+        Args:
+            since_ts: Unix timestamp — if set, realized PnL only counts trades after this time
+                      Pass self._started_at for session-only P&L (Profit Ratchet)
+                      Leave None for 24h daily window (Daily Loss Limit)
         
         Returns: (total_pnl, total_pnl_pct, source)
         """
@@ -308,11 +335,11 @@ class GlobalRiskManager:
                     wallet_address = getattr(bot, 'wallet_address', None)
                     if wallet_address:
                         result = self.polymarket_client.get_pnl_summary(
-                            wallet_address, bot_initial
+                            wallet_address, bot_initial, since_ts=since_ts
                         )
                         if result.get('success'):
                             total_pnl = result['total_pnl']
-                            source = "polymarket_api"
+                            source = "polymarket_api" if since_ts is None else "polymarket_api_session"
                             logger.info(
                                 "[CB-LIVE] %s: value=$%.2f, realized=$%.2f, unrealized=$%.2f",
                                 bid,
@@ -397,11 +424,14 @@ class GlobalRiskManager:
                                 current_odds = market.get("odds") if market else pos.get("entry_odds", 0.5)
                                 
                                 # Call _exit to close on Polymarket (this now checks order status)
-                                await bot.executor._exit(
+                                success = await bot.executor._exit(
                                     trade_id, pos, current_odds, 
                                     f"emergency_liquidation_{reason}"
                                 )
-                                closed_count += 1
+                                if success:
+                                    closed_count += 1
+                                else:
+                                    failed_count += 1
                                 
                             except Exception as e:
                                 logger.error("[LIQUIDATE] Failed to close position %s for bot %s: %s", 
@@ -530,9 +560,13 @@ class GlobalRiskManager:
                         unrealized_pnl += 0.0 # Valued at cost (no gain, no loss)
                         continue
 
-                    # Use BID odds for conservative "What can I sell for NOW" value
-                    # If orderbook is empty, fall back to midpoint
-                    current_bid = m.get("bid", m["odds"]) 
+                    # Use BID odds for conservative "What can I sell for NOW" value.
+                    # Guard against zero-bid (startup race) — fall back to midpoint,
+                    # and skip valuation entirely if both are zero.
+                    current_bid = m.get("bid") or m.get("odds") or 0.0
+                    if current_bid <= 0:
+                        unrealized_pnl += 0.0  # No usable price yet — value at cost
+                        continue
                     shares = cost / pos["entry_odds"]
                     
                     # Apply 0.5% buffer for slippage + 2% Taker Fee
@@ -564,19 +598,27 @@ class GlobalRiskManager:
             return False
             
         # 4. Profit Ratchet (Floating Equity Spike +20%) -> capture gains
+        # Guarded by the same startup grace period as Panic Sell —
+        # a false +20% spike from unseeded odds must not trigger premature liquidation.
+        STARTUP_GRACE_SECS = 60
         unreal_target = getattr(config, "GLOBAL_UNREALIZED_PROFIT_TARGET", 0.20)
         if unreal_target > 0 and equity_pct >= unreal_target:
-            self.needs_liquidation = True
-            self.liquidation_reason = f"profit_ratchet_{equity_pct*100:.1f}pct"
-            logger.critical("🚀 PROFIT RATCHET TRIGGERED: +%.1f%% Floating Equity | SECURING ALL BAGS", 
-                          equity_pct*100)
-            # LIQUIDATE ALL POSITIONS
-            await self.liquidate_all_positions(reason=f"profit_ratchet_{equity_pct*100:.1f}pct")
-            return False
+            if time.time() - getattr(self, '_started_at', 0) < STARTUP_GRACE_SECS:
+                pass  # skip ratchet during startup grace period
+            else:
+                self.needs_liquidation = True
+                self.liquidation_reason = f"profit_ratchet_{equity_pct*100:.1f}pct"
+                logger.critical("🚀 PROFIT RATCHET TRIGGERED: +%.1f%% Floating Equity | SECURING ALL BAGS",
+                              equity_pct*100)
+                await self.liquidate_all_positions(reason=f"profit_ratchet_{equity_pct*100:.1f}pct")
+                return False
 
         # 5. Panic Sell (Floating Equity Crash -25%) -> stop systemic bleed
         panic_floor = -0.25
-        if equity_pct <= panic_floor:
+        STARTUP_GRACE_SECS = 60
+        if time.time() - getattr(self, '_started_at', 0) < STARTUP_GRACE_SECS:
+            pass # skip panic checks during startup
+        elif equity_pct <= panic_floor:
             self.needs_liquidation = True
             self.liquidation_reason = f"panic_exit_{equity_pct*100:.1f}pct"
             logger.critical("⚠️ PANIC SELL TRIGGERED: %.1f%% Floating Equity Crash | LIQUIDATING PORTFOLIO", 
@@ -587,7 +629,7 @@ class GlobalRiskManager:
             
         # 6. Trailing Profit Ratchet (Locks in gains with 1% trailing stop)
         TRAILING_STOP_PCT = 0.01  # 1% drop from peak triggers halt
-        PROFIT_THRESHOLD = 0.10    # Start ratchet at 10% profit
+        PROFIT_THRESHOLD = getattr(config, "PROFIT_RATCHET_THRESHOLD", 0.10)
         
         logger.info("[CB-RATCHET] Checking %d bots: %s", len(self.bots), list(self.bots.keys()))
         
@@ -599,8 +641,9 @@ class GlobalRiskManager:
             if has_bankroll and not bankroll_is_none:
                 bot_initial = self.initial_bankrolls.get(bid, 50.0)
                 
-                # Get PnL using paper/live appropriate source
-                total_pnl, bot_profit_pct, source = self._get_bot_pnl(bid, bot, bot_initial)
+                # RATCHET uses session-only PnL (pass startup timestamp)
+                # so previous trades from earlier today don't pre-trigger the ratchet
+                total_pnl, bot_profit_pct, source = self._get_bot_pnl(bid, bot, bot_initial, since_ts=self._started_at)
                 
                 b_cb = bot.db.get_cb()
                 peak_profit = float(b_cb.get('peak_profit_pct', 0.0) or 0.0)

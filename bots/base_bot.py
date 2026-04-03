@@ -80,6 +80,8 @@ class BaseBot:
             self.cb, self.bankroll, self.starting_bankroll,
             paper_trading=self.paper_trading
         )
+        # Wire feed → executor so WS _handle() can update position timestamps
+        self.poly.register_executor(self.executor)
         self._running  = False
         self._log      = logging.getLogger(f"bot_{self.BOT_ID.lower()}")
 
