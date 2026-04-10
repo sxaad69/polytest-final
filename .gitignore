@@ -1,0 +1,28 @@
+# Environments
+.env
+.venv/
+venv/
+venv
+ENV/
+
+# Data and Logs
+data/
+logs/
+database/
+tmp/
+*.sqlite
+*.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Output files
+output.txt
+out2.txt
+*.log
+
+# Backups
+backup_*/

@@ -1,3 +1,4 @@
+import asyncio
 """
 Risk Manager
 Pre-trade filters, circuit breaker, Kelly sizer.
@@ -18,6 +19,14 @@ from config import (
 )
 
 logger = logging.getLogger(__name__)
+
+ratchet_logger = logging.getLogger("ratchet_logger")
+ratchet_logger.setLevel(logging.INFO)
+if not ratchet_logger.handlers:
+    rfh = logging.FileHandler("logs/bot_g_ratchet.log")
+    rfh.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
+    ratchet_logger.addHandler(rfh)
+    ratchet_logger.propagate = False  # Prevent double printing to console if you don't want it, though standard logger already prints it.
 
 # Import working Polymarket API client
 try:
@@ -490,7 +499,7 @@ class GlobalRiskManager:
         # 2. Portfolio Valuation
         total_daily_loss = 0.0
         current_total_bankroll = 0.0
-        unrealized_pnl = 0.0
+        open_positions_value = 0.0
         self.needs_liquidation = False
         self.liquidation_reason = ""
         
@@ -499,7 +508,7 @@ class GlobalRiskManager:
             if not self.paper_trading and self.polymarket_client and hasattr(bot, 'wallet_address') and bot.wallet_address:
                 try:
                     bot_initial = self.initial_bankrolls.get(bid, 50.0)
-                    result = self.polymarket_client.get_pnl_summary(bot.wallet_address, bot_initial)
+                    result = await asyncio.to_thread(self.polymarket_client.get_pnl_summary, bot.wallet_address, bot_initial)
                     if result.get("success"):
                         realized_pnl = result.get("realized_pnl", 0)
                         # Only count losses (negative PnL) toward daily loss limit
@@ -527,7 +536,7 @@ class GlobalRiskManager:
             if not self.paper_trading and self.polymarket_client and hasattr(bot, 'wallet_address') and bot.wallet_address:
                 # Live mode: Fetch actual wallet balance from Polymarket API
                 try:
-                    result = self.polymarket_client.get_pnl_summary(bot.wallet_address, bot_initial)
+                    result = await asyncio.to_thread(self.polymarket_client.get_pnl_summary, bot.wallet_address, bot_initial)
                     if result.get("success"):
                         actual_balance = result.get("cash_balance", 0)
                         current_total_bankroll += actual_balance
@@ -557,26 +566,24 @@ class GlobalRiskManager:
                     # SAFETY CHECK: If we have no price data yet (Startup Phase),
                     # value the position at COST to prevent a false Panic Sell.
                     if not m or not m.get("odds") or pos.get("entry_odds", 0) <= 0:
-                        unrealized_pnl += 0.0 # Valued at cost (no gain, no loss)
+                        open_positions_value += cost # Valued fully at cost
                         continue
 
                     # Use BID odds for conservative "What can I sell for NOW" value.
-                    # Guard against zero-bid (startup race) — fall back to midpoint,
-                    # and skip valuation entirely if both are zero.
                     current_bid = m.get("bid") or m.get("odds") or 0.0
                     if current_bid <= 0:
-                        unrealized_pnl += 0.0  # No usable price yet — value at cost
+                        open_positions_value += cost  # No usable price yet — value at cost
                         continue
                     shares = cost / pos["entry_odds"]
                     
                     # Apply 0.5% buffer for slippage + 2% Taker Fee
                     current_val = (shares * current_bid) * 0.975
-                    unrealized_pnl += (current_val - cost)
+                    open_positions_value += current_val
 
         loss_pct = total_daily_loss / max(self._total_bankroll, 1)
         
-        # True Floating Equity (Realized + Unrealized)
-        total_equity = current_total_bankroll + unrealized_pnl
+        # True Floating Equity (Cash Balance + Value of Open Positions)
+        total_equity = current_total_bankroll + open_positions_value
         equity_pct = (total_equity - self._total_bankroll) / max(self._total_bankroll, 1)
         
         # 3. Maximum Loss Trigger (The 6-Hour Rule)
@@ -613,8 +620,8 @@ class GlobalRiskManager:
                 await self.liquidate_all_positions(reason=f"profit_ratchet_{equity_pct*100:.1f}pct")
                 return False
 
-        # 5. Panic Sell (Floating Equity Crash -25%) -> stop systemic bleed
-        panic_floor = -0.25
+        # 5. Panic Sell (Floating Equity Crash equivalent to config Limit) -> stop systemic bleed
+        panic_floor = -getattr(config, "GLOBAL_DAILY_LOSS_LIMIT", 0.25)
         STARTUP_GRACE_SECS = 60
         if time.time() - getattr(self, '_started_at', 0) < STARTUP_GRACE_SECS:
             pass # skip panic checks during startup
@@ -643,12 +650,14 @@ class GlobalRiskManager:
                 
                 # RATCHET uses session-only PnL (pass startup timestamp)
                 # so previous trades from earlier today don't pre-trigger the ratchet
-                total_pnl, bot_profit_pct, source = self._get_bot_pnl(bid, bot, bot_initial, since_ts=self._started_at)
+                total_pnl, bot_profit_pct, source = await asyncio.to_thread(self._get_bot_pnl, bid, bot, bot_initial, since_ts=self._started_at)
                 
                 b_cb = bot.db.get_cb()
                 peak_profit = float(b_cb.get('peak_profit_pct', 0.0) or 0.0)
                 
                 logger.info("[CB-RATCHET] %s: profit=%.1f%% (%.2f/%s), peak=%.1f%%, threshold=%.1f%%, source=%s", 
+                           bid, bot_profit_pct*100, total_pnl, bot_initial, peak_profit*100, PROFIT_THRESHOLD*100, source)
+                ratchet_logger.info("[CB-RATCHET] %s: profit=%.1f%% (%.2f/%s), peak=%.1f%%, threshold=%.1f%%, source=%s", 
                            bid, bot_profit_pct*100, total_pnl, bot_initial, peak_profit*100, PROFIT_THRESHOLD*100, source)
                 
                 # ALWAYS update peak if current profit is higher (even below threshold)

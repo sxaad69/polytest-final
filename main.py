@@ -44,7 +44,7 @@ console_handler = logging.StreamHandler(sys.stdout)
 console_handler.setFormatter(log_formatter)
 
 # 2. Dedicated Error File Handler (Rotates at 10MB to prevent disk overflow)
-error_file_handler = RotatingFileHandler("logs/errors.log", maxBytes=10*1024*1024, backupCount=5)
+error_file_handler = RotatingFileHandler("logs/errors.log", maxBytes=10*1024*1024, backupCount=30)
 error_file_handler.setLevel(logging.ERROR)
 error_file_handler.setFormatter(
     logging.Formatter("%(asctime)s [%(levelname)s] %(name)s [Line: %(lineno)d] %(funcName)s():\n%(message)s\n")

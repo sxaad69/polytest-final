@@ -23,7 +23,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ── Mode ───────────────────────────────────────────────────────────────────────
-PAPER_TRADING = False       # global flag — True keeps everything on paper
+PAPER_TRADING = True       # global flag — True keeps everything on paper
 
 # ── Per-bot paper/live mode ────────────────────────────────────────────────────
 # Allows running Bot A live while Bot B stays on paper simultaneously
@@ -33,11 +33,11 @@ BOT_C_PAPER_TRADING = True
 BOT_D_PAPER_TRADING = True
 BOT_E_PAPER_TRADING = True
 BOT_F_PAPER_TRADING = True
-BOT_G_PAPER_TRADING = False  # Bot G LIVE
+BOT_G_PAPER_TRADING = True  # Bot G LIVE
 
 # ── Bot enable flags ───────────────────────────────────────────────────────────
-BOT_A_ENABLED = False        # Chainlink lag
-BOT_B_ENABLED = False        # Hybrid
+BOT_A_ENABLED = False        # Chainlink lag (Depreciated/Obsolete)
+BOT_B_ENABLED = False        # Hybrid (Depreciated/Obsolete)
 BOT_C_ENABLED   = False
 BOT_D_ENABLED   = False
 BOT_E_ENABLED   = False
@@ -48,13 +48,13 @@ BOT_G_ENABLED = True        # Crypto (Universal)
 LIVE_CONFLICT_RULE = "higher_confidence"
 
 # ── Bankroll ───────────────────────────────────────────────────────────────────
-BOT_A_BANKROLL = 100.0  # DATA VOLCANO simulation
-BOT_B_BANKROLL = 100.0  # DATA VOLCANO simulation
+BOT_A_BANKROLL = 10000.0  # DATA VOLCANO simulation
+BOT_B_BANKROLL = 10000.0  # DATA VOLCANO simulation
 BOT_C_BANKROLL = 100.0
 BOT_D_BANKROLL = 100.0
 BOT_E_BANKROLL = 100.0
 BOT_F_BANKROLL = 100.0
-BOT_G_BANKROLL = 100.0  # DATA VOLCANO simulation
+BOT_G_BANKROLL = 10000.0  # DATA VOLCANO simulation
 MAX_BET_PCT    = 0.05
 KELLY_FRACTION = 0.25
 
@@ -126,12 +126,12 @@ BOT_G_TIMEFRAMES = {
     "5m": 300,   # 5m ONLY — data shows 0% win rate on 15m/4h
 }
 # Signal momentum band (from 811-trade simulation, March 2026)
-BOT_G_MIN_CONFIDENCE          = 0.035   # Floor — below this is noise (22% win rate)
-BOT_G_MOMENTUM_CEILING        = 0.100   # Ceiling — above this is overextended (0% win rate)
+BOT_G_MIN_CONFIDENCE          = 0.001   # Full-width data capture for analysis
+BOT_G_MOMENTUM_CEILING        = 1.000   # No ceiling for analysis stage
 
-# Entry filters (Relaxed for 5m volatility)
-BOT_G_MIN_ENTRY_ODDS          = 0.15    # Expanded from 0.30
-BOT_G_MAX_ENTRY_ODDS          = 0.85    # Expanded from 0.70
+# Entry filters (Wide Aperture for Data Gathering)
+BOT_G_MIN_ENTRY_ODDS          = 0.10    # Wide floor
+BOT_G_MAX_ENTRY_ODDS          = 0.95    # Wide ceiling
 BOT_G_MAX_ENTRY_SECS_INTO_WIN = 210     # Expanded from 120 (3.5 mins / 5 mins)
 BOT_G_MIN_SECS_REMAINING      = 60      # Don't enter if < 60s left in window
 
@@ -151,9 +151,9 @@ GLOBAL_EXCLUDE_KEYWORDS = [
 # ── Global Portfolio Risk ──────────────────────────────────────────────────────
 GLOBAL_MAX_EXPOSURE_PCT = 0.30   # Max 30% of total bankroll in flight at once
 GLOBAL_DAILY_LOSS_LIMIT = 0.99   # 20% across all bots triggers global sleep mode
-GLOBAL_HALT_DURATION_MINUTES = 30.0 # How long to freeze the bots after max loss
+GLOBAL_HALT_DURATION_MINUTES = 5.0 # How long to freeze the bots after max loss
 GLOBAL_DAILY_PROFIT_TARGET = 0.10 # +10% target to shut down safely (Realized)
-GLOBAL_UNREALIZED_PROFIT_TARGET = 0.20 # +20% spike target to panic sell & lock (Unrealized)
+GLOBAL_UNREALIZED_PROFIT_TARGET = 0.06 # +6% spike target to panic sell & lock (Unrealized)
 
 # ── Circuit breaker ────────────────────────────────────────────────────────────
 CIRCUIT_BREAKER_ENABLED = True   # paper mode — flip True for live
@@ -163,9 +163,9 @@ DAILY_LOSS_LIMIT_PCT    = float(os.getenv("DAILY_LOSS_LIMIT_PCT", "0.15"))
 # ── Enhanced Loss Protection (Tiered Halts) ───────────────────────────────────
 # Bot G trades 5m markets — raise thresholds to avoid halting on structural noise
 ENHANCED_LOSS_PROTECTION_ENABLED = True
-CONSECUTIVE_LOSS_HALT_COUNT = 5      # Halt after this many consecutive losses (was 3; raised from 10 after valuation fix)
+CONSECUTIVE_LOSS_HALT_COUNT = 100     # Halt after this many consecutive losses (was 3; raised from 10 after valuation fix)
 CONSECUTIVE_LOSS_HALT_MINUTES = 360  # 6 hours = 360 minutes
-TOTAL_DAILY_LOSS_HALT_COUNT = 15     # Halt until tomorrow after this many total daily losses (was 6)
+TOTAL_DAILY_LOSS_HALT_COUNT = 100     # Halt until tomorrow after this many total daily losses (was 6)
 
 # ── Profit Ratchet (Trailing Stop) ───────────────────────────────────────────
 # All values as decimals (0.10 = 10%)
@@ -187,11 +187,11 @@ USE_MINIMUM_SIZING_TEST = True  # True = Trade absolute minimum shares allowed, 
 # Point-Based Profit Ratchet Configuration
 TRAILING_STOP_ENABLED   = True  # Dynamic Profit Ratchet enabled
 HARD_SL_DELTA           = 0.15  # -15 cents (tightened from 0.25) pre-activation safety net
-RATCHET_ACTIVATION_GAIN = 0.10  # +10 cents profit to activate trail
+RATCHET_ACTIVATION_GAIN = 0.07  # +10 cents profit to activate trail
 TRAILING_STOP_DELTA     = 0.10  # Trails 10 cents behind peak profit
 HARD_STOP_SECONDS     = 15      # Last resort only — exit before binary settlement
-POSITION_POLL_SECS    = 3
-POSITION_HEALTH_GUARD_SECS      = 5    # Emergency REST fetch if no WS update for 5s
+POSITION_POLL_SECS    = 1
+POSITION_HEALTH_GUARD_SECS      = 2    # Emergency REST fetch if no WS update for 2s
 POSITION_MANDATORY_REFRESH_SECS = 10   # Forced REST truth-check every 10s regardless
 POSITION_LOG_FILE               = "logs/open_positions.log"  # Clinical position log
 
@@ -232,8 +232,8 @@ LOG_LEVEL = "INFO"
 WRITE_SCANNED_MARKETS_TXT = True   # Overwrites logs/bot_X_markets.txt with actively monitored slugs
 
 # High-Precision Signal Trace for Bot G
-BOT_G_REJECTION_LOGGING      = True   # Set to False to disable all skip logs
-BOT_G_REJECTION_ONLY_CONSOLE = False  # Set to True to skip writing to log file
+BOT_G_REJECTION_LOGGING      = False   # Set to False to disable all skip logs
+BOT_G_REJECTION_ONLY_CONSOLE = True  # Set to True to skip writing to log file
 BOT_G_REJECTION_LOG_PATH     = "logs/bot_g_rejections.log"
 
 

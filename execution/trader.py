@@ -30,7 +30,7 @@ def _build_position_logger() -> logging.Logger:
     if not pos_log.handlers:
         os.makedirs(os.path.dirname(POSITION_LOG_FILE) if os.path.dirname(POSITION_LOG_FILE) else ".", exist_ok=True)
         handler = logging.handlers.RotatingFileHandler(
-            POSITION_LOG_FILE, maxBytes=5 * 1024 * 1024, backupCount=3
+            POSITION_LOG_FILE, maxBytes=5 * 1024 * 1024, backupCount=30
         )
         handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
         pos_log.addHandler(handler)
@@ -221,6 +221,7 @@ class ExecutionLayer:
             "chainlink_open":      None,
             "asset":               asset,
             "slug":                slug,
+            "confidence":          confidence,
         })
 
         # Calculate position size in shares (not dollars)
@@ -247,6 +248,11 @@ class ExecutionLayer:
         
         # Calculate and store targets (replaced by dynamic Ratchet algorithm)
         pass
+        
+        pos_logger.info(
+            "[ENTRY] [Bot %s] Trade #%s opened | direction=%s | stake=%.2f -> %.1f shares | odds=%.3f",
+            self.bot_id, trade_id, direction.upper(), stake, position_size, filled
+        )
         
         # CRITICAL: Subscribe this token's WS feed so TP/SL have live prices
         # Without this, _evaluate() can't see real-time price moves for new positions
@@ -286,8 +292,8 @@ class ExecutionLayer:
         if secs_to_end < -30:
             logger.info("[Bot%s] Position %s in resolved market — removing from active monitor",
                         self.bot_id, trade_id)
-            pos_logger.info("[REMOVE] Trade #%s (%s-%s) | Market resolved >30s ago — dropped from monitor",
-                            trade_id, asset, direction)
+            pos_logger.info("[REMOVE] [Bot %s] Trade #%s (%s-%s) | Market resolved >30s ago — dropped from monitor",
+                            self.bot_id, trade_id, asset, direction)
             if trade_id in self._positions:
                 del self._positions[trade_id]
             return
@@ -323,7 +329,8 @@ class ExecutionLayer:
         
         bids = market.get("bids", [])
         best_bid = float(bids[0]["price"]) if bids else None
-        ask_price = float(market.get("asks", [{"price": 1.0}])[0]["price"])
+        asks = market.get("asks", [])
+        ask_price = float(asks[0]["price"]) if asks else 1.0
         spread = ask_price - (best_bid or 0)
         ltp = market.get("ltp")
 
@@ -356,10 +363,12 @@ class ExecutionLayer:
         else:
             status_str = f"RATCHET: OFF | Hard SL: {hard_sl_target:.3f}"
 
+        slug_str = pos.get("slug", f"{asset}-{direction}")
+        conf_str = f"{pos.get('confidence', 0):.4f}"
         pos_logger.info(
-            "[HEARTBEAT] Trade #%s (%s-%s) | Entry: %.3f | Internal: %s | "
+            "[HEARTBEAT] [Bot %s] Trade #%s (%s) | Conf: %s | Entry: %.3f | Internal: %s | "
             "%s | Source: %s | WS: %.1fs ago | Secs to end: %.0f",
-            trade_id, asset, direction, entry_odds,
+            self.bot_id, trade_id, slug_str, conf_str, entry_odds,
             f"{current_odds:.3f}" if current_odds is not None else "NO-PRICE",
             status_str,
             refresh_source, secs_since_ws, secs_to_end
@@ -381,7 +390,7 @@ class ExecutionLayer:
             # 1. Hard SL Trapdoor
             if current_gain <= -getattr(config, "HARD_SL_DELTA", 0.15):
                 logger.info("[Bot%s] Position %s reached Hard SL (at %.3f)", self.bot_id, trade_id, current_odds)
-                pos_logger.info("[EXIT] Trade #%s | HARD STOP LOSS TRIGGERED | Price: %.3f", trade_id, current_odds)
+                pos_logger.info("[EXIT] [Bot %s] Trade #%s | HARD STOP LOSS TRIGGERED | Price: %.3f", self.bot_id, trade_id, current_odds)
                 await self._exit(trade_id, pos, current_odds, "hard_sl_hit")
                 return
 
@@ -395,8 +404,8 @@ class ExecutionLayer:
                 if current_odds <= stop_target:
                     logger.critical("[RATCHET] Trade %s EXITED | Peak: +%.3f | Exit: %.3f", 
                                     trade_id, peak_gain, current_odds)
-                    pos_logger.info("[EXIT] Trade #%s | RATCHET STOP TRIGGERED | Price: %.3f Target: %.3f", 
-                                    trade_id, current_odds, stop_target)
+                    pos_logger.info("[EXIT] [Bot %s] Trade #%s | RATCHET STOP TRIGGERED | Price: %.3f Target: %.3f", 
+                                    self.bot_id, trade_id, current_odds, stop_target)
                     await self._exit(trade_id, pos, current_odds, "profit_ratchet_exit")
                     return
 
@@ -465,9 +474,25 @@ class ExecutionLayer:
                 logger.error("[Bot%s] Failed to fetch true token balance: %s. Using theoretical size.", self.bot_id, e)
 
         # 2. Fire the Sell order using exact SHARES (not dollar amount)
+        # Apply a dynamic slippage buffer to the limit price to ensure the FOK order matches.
+        # As attempts increase, the buffer widens to guarantee the dump.
+        if current_attempts == 0:
+            slippage = 0.03
+        elif current_attempts == 1:
+            slippage = 0.05
+        elif current_attempts == 2:
+            slippage = 0.07
+        else:
+            # 4+ attempts: Desperation Dump (0.10c slip)
+            slippage = 0.10
+            
+        buffered_exit_price = max(0.01, min(0.99, exit_odds - (0.03 + (current_attempts * 0.02))))
+        
+        pos_logger.info("[EXIT] [Bot %s] Trade #%s | %s | Current Price: %.3f | Executed Polymarket Limit Fill: %.3f", 
+                        self.bot_id, trade_id, reason, exit_odds, buffered_exit_price)
         order = await self.poly.place_order(
             "sell", pos["token_id"],
-            sell_shares, exit_odds, self.bot_id,  # Use shares, not stake_usdc
+            sell_shares, buffered_exit_price, self.bot_id,  # Use shares with buffered price
             paper=self.paper_trading
         )
         

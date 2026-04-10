@@ -14,8 +14,8 @@ class BotB(BaseBot):
     DB_PATH           = BOT_B_DB_PATH
     STARTING_BANKROLL = BOT_B_BANKROLL
 
-    def __init__(self, binance, chainlink, poly):
-        super().__init__(binance, chainlink, poly)
+    def __init__(self, binance, chainlink, poly, wallet_address=None, polymarket_client=None):
+        super().__init__(binance, chainlink, poly, wallet_address=wallet_address, polymarket_client=polymarket_client)
         self._signal = BotBSignal()
 
     def evaluate_signal(self):

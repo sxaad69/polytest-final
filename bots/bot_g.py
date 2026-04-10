@@ -135,6 +135,7 @@ class BotG(BaseBot):
         # Extract market identity first so we can gate on it
         market_id = m.get("condition_id")
         slug = m.get("slug", "")
+        ui_slug = m.get("question", slug) # Capture the human readable string to pass to the database
         
         # Parse win_start/win_end from registry, or fall back to slug timestamp
         win_start = m.get("win_start")
@@ -297,7 +298,7 @@ class BotG(BaseBot):
             win_end=win_end,
             condition_id=market_id,
             asset=asset,
-            slug=slug,
+            slug=ui_slug,
         )
         
         # Only blacklist once the order actually filled — if FOK rejected, let next tick retry
