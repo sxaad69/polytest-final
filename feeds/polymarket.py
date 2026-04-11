@@ -96,15 +96,37 @@ class PolymarketFeed:
     def market_id(self):
         return self.markets.get(self._default_up_id, {}).get("condition_id")
 
-    async def start_discovery(self, interval: int = 120):
+    async def start_discovery(self, interval: int = 60):
         """Background loop to discover all active markets efficiently."""
         logger.info("Polymarket discovery service starting | interval=%ds", interval)
-        while self._running:
+        while True:
             try:
+                # 1. Surgical Strike List Engine (Direct Mathematical Slug Generation)
+                # This replaces the need for bots to call fetch_strike_list_markets() synchronously.
+                import config
+                assets     = getattr(config, "BOT_G_STRIKE_ASSETS", ["btc", "eth", "sol", "bnb", "xrp", "doge"])
+                timeframes = getattr(config, "BOT_G_TIMEFRAMES", {"5m": 300, "15m": 900, "1h": 3600, "4h": 14400})
+                
                 now = time.time()
+                fetches = []
+                for asset in assets:
+                    for tf_name, tf_secs in timeframes.items():
+                        ts = int(now // tf_secs) * tf_secs
+                        slug = f"{asset}-updown-{tf_name}-{ts}"
+                        fetches.append(self._fetch_and_register(slug, ts, tf_secs))
+                
+                if fetches:
+                    # Limit concurrency for discovery to avoid rate limits
+                    logger.debug("Discovery: Fetching %d surgical slugs", len(fetches))
+                    for i in range(0, len(fetches), 10):
+                        chunk = fetches[i:i+10]
+                        await asyncio.gather(*chunk, return_exceptions=True)
+
+                # 2. General discovery for legacy Bot A/B patterns
                 ts_window = int(now // 300) * 300
                 surgical_pattern = f"*-updown-*-{ts_window}"
                 await self.refresh_all_markets(pattern=surgical_pattern)
+                
             except Exception as e:
                 logger.error("Discovery loop error: %s", e)
             await asyncio.sleep(interval)
@@ -280,25 +302,9 @@ class PolymarketFeed:
 
     async def fetch_strike_list_markets(self) -> bool:
         """
-        Surgical strike: computes and loads all priority crypto markets algorithmically.
+        No-op legacy shim. Discovery is now handled by start_discovery background task.
+        Bots now simply read from the up-to-date self.markets registry.
         """
-        import config
-        assets     = getattr(config, "BOT_G_STRIKE_ASSETS", ["btc", "eth", "sol", "bnb", "xrp", "doge"])
-        timeframes = getattr(config, "BOT_G_TIMEFRAMES", {"5m": 300, "15m": 900, "1h": 3600, "4h": 14400})
-        
-        now = time.time()
-        fetches = []
-        
-        for asset in assets:
-            for tf_name, tf_secs in timeframes.items():
-                ts = int(now // tf_secs) * tf_secs
-                slug = f"{asset}-updown-{tf_name}-{ts}"
-                fetches.append(self._fetch_and_register(slug, ts, tf_secs))
-        
-        if fetches:
-            await asyncio.gather(*fetches, return_exceptions=True)
-            # Once after all fetches complete to avoid 1011 WS spam
-            await self.resubscribe()
         return True
 
     async def _fetch_and_register(self, slug: str, ts: int, duration: int):

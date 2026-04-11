@@ -120,11 +120,13 @@ class BotG(BaseBot):
                 self._log.info("[BotG] 🔍 Scanning %d filtered crypto markets | Best: %s (%.4f momentum)", 
                                len(target_markets), best_asset, max_mom)
                 
-                # 4. Evaluate each market
-                for tid, m in list(target_markets.items()):
-                    if len(self.executor._positions) >= self.max_concurrent_trades:
-                        break
-                    await self._evaluate_market(tid, m)
+                # 4. Evaluate all markets in parallel (Decoupled from sequential loop)
+                if target_markets and len(self.executor._positions) < self.max_concurrent_trades:
+                    eval_tasks = [self._evaluate_market(tid, m) for tid, m in target_markets.items()]
+                    # Limit concurrency to 5 to avoid triggering API rate limits
+                    for i in range(0, len(eval_tasks), 5):
+                        chunk = eval_tasks[i:i+5]
+                        await asyncio.gather(*chunk)
 
             except Exception as e:
                 self._log.error("Bot G loop error: %s", e, exc_info=True)

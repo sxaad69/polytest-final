@@ -130,8 +130,8 @@ BOT_G_MIN_CONFIDENCE          = 0.001   # Full-width data capture for analysis
 BOT_G_MOMENTUM_CEILING        = 1.000   # No ceiling for analysis stage
 
 # Entry filters (Wide Aperture for Data Gathering)
-BOT_G_MIN_ENTRY_ODDS          = 0.10    # Wide floor
-BOT_G_MAX_ENTRY_ODDS          = 0.95    # Wide ceiling
+BOT_G_MIN_ENTRY_ODDS          = 0.35    # Tightened from 0.10
+BOT_G_MAX_ENTRY_ODDS          = 0.75    # Tightened from 0.95
 BOT_G_MAX_ENTRY_SECS_INTO_WIN = 210     # Expanded from 120 (3.5 mins / 5 mins)
 BOT_G_MIN_SECS_REMAINING      = 60      # Don't enter if < 60s left in window
 
@@ -186,9 +186,9 @@ USE_MINIMUM_SIZING_TEST = True  # True = Trade absolute minimum shares allowed, 
 
 # Point-Based Profit Ratchet Configuration
 TRAILING_STOP_ENABLED   = True  # Dynamic Profit Ratchet enabled
-HARD_SL_DELTA           = 0.15  # -15 cents (tightened from 0.25) pre-activation safety net
-RATCHET_ACTIVATION_GAIN = 0.07  # +10 cents profit to activate trail
-TRAILING_STOP_DELTA     = 0.10  # Trails 10 cents behind peak profit
+HARD_SL_DELTA           = 0.05  # Tightened to 0.05 Razor (Forensic Optimization)
+RATCHET_ACTIVATION_GAIN = 0.05  # +5 cents profit to activate trail (lowered from 0.07)
+TRAILING_STOP_DELTA     = 0.02  # Trails 2 cents behind peak profit (tightened from 0.10)
 HARD_STOP_SECONDS     = 15      # Last resort only — exit before binary settlement
 POSITION_POLL_SECS    = 1
 POSITION_HEALTH_GUARD_SECS      = 2    # Emergency REST fetch if no WS update for 2s
@@ -232,8 +232,8 @@ LOG_LEVEL = "INFO"
 WRITE_SCANNED_MARKETS_TXT = True   # Overwrites logs/bot_X_markets.txt with actively monitored slugs
 
 # High-Precision Signal Trace for Bot G
-BOT_G_REJECTION_LOGGING      = False   # Set to False to disable all skip logs
-BOT_G_REJECTION_ONLY_CONSOLE = True  # Set to True to skip writing to log file
+BOT_G_REJECTION_LOGGING      = True   # Set to False to disable all skip logs
+BOT_G_REJECTION_ONLY_CONSOLE = False  # Set to True to skip writing to log file
 BOT_G_REJECTION_LOG_PATH     = "logs/bot_g_rejections.log"
 
 

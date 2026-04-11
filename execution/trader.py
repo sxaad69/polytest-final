@@ -278,8 +278,10 @@ class ExecutionLayer:
             await self._check_all()
 
     async def _check_all(self):
-        for tid, pos in list(self._positions.items()):
-            await self._evaluate(tid, pos)
+        if not self._positions:
+            return
+        tasks = [self._evaluate(tid, pos) for tid, pos in self._positions.items()]
+        await asyncio.gather(*tasks, return_exceptions=True)
 
     async def _evaluate(self, trade_id: int, pos: dict):
         direction  = pos.get("direction")
