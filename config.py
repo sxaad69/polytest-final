@@ -126,8 +126,8 @@ BOT_G_TIMEFRAMES = {
     "5m": 300,   # 5m ONLY — data shows 0% win rate on 15m/4h
 }
 # Signal momentum band (from 811-trade simulation, March 2026)
-BOT_G_MIN_CONFIDENCE          = 0.001   # Full-width data capture for analysis
-BOT_G_MOMENTUM_CEILING        = 1.000   # No ceiling for analysis stage
+BOT_G_MIN_CONFIDENCE          = 0.035   # Full-width data capture for analysis
+BOT_G_MOMENTUM_CEILING        = 1.00   # No ceiling for analysis stage
 
 # Entry filters (Wide Aperture for Data Gathering)
 BOT_G_MIN_ENTRY_ODDS          = 0.35    # Tightened from 0.10
@@ -186,7 +186,7 @@ USE_MINIMUM_SIZING_TEST = True  # True = Trade absolute minimum shares allowed, 
 
 # Point-Based Profit Ratchet Configuration
 TRAILING_STOP_ENABLED   = True  # Dynamic Profit Ratchet enabled
-HARD_SL_DELTA           = 0.05  # Tightened to 0.05 Razor (Forensic Optimization)
+HARD_SL_DELTA           = 0.10  # Tightened to 0.05 Razor (Forensic Optimization)
 RATCHET_ACTIVATION_GAIN = 0.05  # +5 cents profit to activate trail (lowered from 0.07)
 TRAILING_STOP_DELTA     = 0.02  # Trails 2 cents behind peak profit (tightened from 0.10)
 HARD_STOP_SECONDS     = 15      # Last resort only — exit before binary settlement
@@ -225,7 +225,7 @@ BOT_C_DB_PATH = str(_DATA_DIR / "bot_c_paper.db")
 BOT_D_DB_PATH = str(_DATA_DIR / "bot_d_paper.db")
 BOT_E_DB_PATH = str(_DATA_DIR / "bot_e_paper.db")
 BOT_F_DB_PATH = str(_DATA_DIR / "bot_f_paper.db")
-BOT_G_DB_PATH = str(_DATA_DIR / "bot_g_paper.db")
+BOT_G_DB_PATH = "/home/ubuntu/polytest_legacy/data/bot_g_paper.db"
 
 # ── Logging & Monitoring ───────────────────────────────────────────────────────
 LOG_LEVEL = "INFO"

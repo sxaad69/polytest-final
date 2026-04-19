@@ -72,6 +72,7 @@ class ExecutionLayer:
         self.starting_bankroll = starting_bankroll
         self.paper_trading     = paper_trading
         self._positions: dict  = {}
+        self._post_exit_positions: dict = {}  # Closed trades still within market window
         self._load_positions()
 
     def _load_positions(self):
@@ -269,7 +270,7 @@ class ExecutionLayer:
 
     async def start_monitor(self):
         while True:
-            if self._positions:
+            if self._positions or self._post_exit_positions:
                 await self._check_all()
             await asyncio.sleep(POSITION_POLL_SECS)
 
@@ -278,9 +279,10 @@ class ExecutionLayer:
             await self._check_all()
 
     async def _check_all(self):
-        if not self._positions:
+        if not self._positions and not self._post_exit_positions:
             return
         tasks = [self._evaluate(tid, pos) for tid, pos in self._positions.items()]
+        tasks += [self._heartbeat_post_exit(tid, pos) for tid, pos in list(self._post_exit_positions.items())]
         await asyncio.gather(*tasks, return_exceptions=True)
 
     async def _evaluate(self, trade_id: int, pos: dict):
@@ -415,6 +417,68 @@ class ExecutionLayer:
         if secs_to_end <= getattr(config, "HARD_STOP_SECONDS", 15):
             await self._exit(trade_id, pos, current_odds, "hard_stop")
             return
+
+    async def _heartbeat_post_exit(self, trade_id: int, pos: dict):
+        """Log price heartbeats for a closed trade until the market window expires."""
+        win_end  = pos.get("window_end")
+        asset    = pos.get("asset", "CRYPTO")
+        token_id = pos.get("token_id")
+        secs_to_end = (win_end - time.time()) if win_end else 0
+
+        # Market window has closed — clean up
+        if secs_to_end <= 0:
+            pos_logger.info(
+                "[POST-EXIT] [Bot %s] Trade #%s (%s) | Market window closed — removed from post-exit monitor",
+                self.bot_id, trade_id, asset
+            )
+            self._post_exit_positions.pop(trade_id, None)
+            return
+
+        # Refresh price if stale
+        now = time.time()
+        secs_since_ws = now - pos.get("last_ws_update_ts", 0)
+        refresh_source = "WS"
+        if secs_since_ws > POSITION_HEALTH_GUARD_SECS:
+            try:
+                await self.poly.fetch_book(token_id)
+                pos["last_ws_update_ts"] = time.time()
+                refresh_source = "GUARD-REST"
+            except Exception:
+                pass
+
+        # Get current market price
+        market = self.poly.markets.get(token_id)
+        if not market:
+            return
+
+        bids      = market.get("bids", [])
+        best_bid  = float(bids[0]["price"]) if bids else None
+        asks      = market.get("asks", [])
+        ask_price = float(asks[0]["price"]) if asks else 1.0
+        spread    = ask_price - (best_bid or 0)
+        ltp       = market.get("ltp")
+
+        if best_bid and spread <= 0.10:
+            current_odds = (best_bid + ask_price) / 2
+        elif ltp:
+            current_odds = ltp
+        elif best_bid:
+            current_odds = best_bid
+        else:
+            current_odds = market.get("odds")
+
+        entry_odds  = pos.get("entry_odds", 0.0)
+        exit_odds   = pos.get("exit_odds", 0.0)
+        exit_reason = pos.get("exit_reason", "unknown")
+
+        pos_logger.info(
+            "[POST-EXIT HB] [Bot %s] Trade #%s (%s-%s) | Entry: %.3f | Closed at: %.3f (%s) | "
+            "Current: %s | Source: %s | Secs to end: %.0f",
+            self.bot_id, trade_id, asset, pos.get("direction", ""),
+            entry_odds, exit_odds, exit_reason,
+            f"{current_odds:.3f}" if current_odds is not None else "NO-PRICE",
+            refresh_source, secs_to_end
+        )
 
     async def _exit(self, trade_id: int, pos: dict,
                     exit_odds: float, reason: str):
@@ -552,7 +616,17 @@ class ExecutionLayer:
         self.cb.on_result(self.db, outcome, pnl, self.starting_bankroll)
         
         if trade_id in self._positions:
-            del self._positions[trade_id]
+            closed_pos = self._positions.pop(trade_id)
+            closed_pos["exit_reason"] = reason
+            closed_pos["exit_odds"]   = exit_odds
+            self._post_exit_positions[trade_id] = closed_pos
+            pos_logger.info(
+                "[POST-EXIT] [Bot %s] Trade #%s (%s-%s) | Moved to post-exit monitor | "
+                "Will heartbeat until market closes",
+                self.bot_id, trade_id,
+                closed_pos.get("asset", "CRYPTO"),
+                closed_pos.get("direction", "")
+            )
 
         logger.info(
             "[Bot%s] EXIT | id=%s reason=%s odds=%.3f pnl=%+.4f outcome=%s | SETTLED=%s",
