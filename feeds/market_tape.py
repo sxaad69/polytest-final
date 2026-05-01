@@ -99,13 +99,15 @@ class MarketTapeLogger:
     # ── Internal Helpers ───────────────────────────────────────────────────────
 
     def _rotate_if_needed(self, now: datetime = None) -> None:
-        """Open a new daily file if the date has changed since last write."""
+        """Open a new hourly file if the hour has changed since last write."""
         if now is None:
             now = datetime.utcnow()
-        today = now.date()
+        
+        # Use year-month-day_hour as the unique key for rotation
+        current_hour_key = now.strftime("%Y-%m-%d_%H")
 
-        if self._current_date == today:
-            return  # same day — nothing to do
+        if self._current_date == current_hour_key:
+            return  # same hour — nothing to do
 
         # Close previous file if open
         if self._file:
@@ -114,14 +116,14 @@ class MarketTapeLogger:
             except Exception:
                 pass
 
-        # Open new daily file
-        filename  = f"market_tape_{today.strftime('%Y-%m-%d')}.csv"
+        # Open new hourly file
+        filename  = f"market_tape_{current_hour_key}.csv"
         filepath  = os.path.join(self._log_dir, filename)
         is_new    = not os.path.exists(filepath)
 
         self._file         = open(filepath, "a", newline="", buffering=1)
         self._writer       = csv.writer(self._file)
-        self._current_date = today
+        self._current_date = current_hour_key
 
         if is_new:
             self._writer.writerow(_HEADERS)   # write header on brand new files
