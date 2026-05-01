@@ -186,7 +186,7 @@ USE_MINIMUM_SIZING_TEST = True  # True = Trade absolute minimum shares allowed, 
 
 # Point-Based Profit Ratchet Configuration
 TRAILING_STOP_ENABLED   = True  # Dynamic Profit Ratchet enabled
-HARD_SL_DELTA           = 0.10  # Tightened to 0.05 Razor (Forensic Optimization)
+HARD_SL_DELTA           = 0.99  # Disabled to rely on 15s time-based exit
 RATCHET_ACTIVATION_GAIN = 0.05  # +5 cents profit to activate trail (lowered from 0.07)
 TAKE_PROFIT_DELTA       = 0.22
 TRAILING_STOP_DELTA     = 0.02  # Trails 2 cents behind peak profit (tightened from 0.10)

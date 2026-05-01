@@ -71,22 +71,8 @@ class BotGSignal:
         result.tradeable = True
         result.score     = round(raw_score, 4)
         
-        # 4. Dead Zone guard — momentum between 0.040 and 0.070 is ambiguous
-        # (not strong enough for trend-follow, not weak enough for mean-reversion).
-        # 800-trade analysis showed near-50% win rate in this band = coin flip.
-        if 0.040 <= raw_score <= 0.070:
-            result.tradeable  = False
-            result.skip_reason = f"dead_zone:{raw_score:.4f}"
-            return result
-
-        # 5. Direction logic (data-driven)
-        # Low momentum zone (0.035-0.040) -> High likelihood of Mean Reversion. 
-        # We short-bias these to catch the 'rubber band' snap-back.
-        if raw_score <= 0.040:
-            # Weak signal zone -> Mean Reversion -> ALWAYS SHORT
-            result.direction = "short"
-        else:
-            # Strong signal zone -> Trend Continuation -> Follow Momentum
-            result.direction = "long" if momentum > 0 else "short"
+        # 4. Direction logic (data-driven)
+        # Strong signal zone -> Trend Continuation -> Follow Momentum
+        result.direction = "long" if momentum > 0 else "short"
 
         return result
