@@ -936,11 +936,6 @@ class PolymarketFeed:
         self._session = aiohttp.ClientSession()
         return self
 
-    def __init__(self, markets_dict: Dict, market_tape=None):
-        self.markets = markets_dict
-        self.market_tape = market_tape
-        self.ws = None
-
     async def __aexit__(self, *_):
         self._running = False
         if self._session:
