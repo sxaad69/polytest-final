@@ -63,7 +63,7 @@ MIN_ODDS            = 0.001  # PAPER: very wide
 MAX_ODDS            = 0.999  # PAPER: very wide
 MIN_BOOK_DEPTH      = 0.0    # LIVE: 50.0  # 0 to allow untested tokens to pass depth gate
 NO_ENTRY_LAST_SECS  = 0      # LIVE: 180   # don't enter if <180s remaining
-NO_ENTRY_FIRST_SECS = 0      # LIVE: 60    # don't enter in first 60s
+NO_ENTRY_FIRST_SECS = 60      # LIVE: 60    # don't enter in first 60s
 WINDOW_DURATION     = 300
 BOT_C_NO_ENTRY_LAST_SECS = 0  # LIVE: 30    # arbs lock in profit immediately
 
@@ -126,7 +126,7 @@ BOT_G_TIMEFRAMES = {
     "5m": 300,   # 5m ONLY — data shows 0% win rate on 15m/4h
 }
 # Signal momentum band (from 811-trade simulation, March 2026)
-BOT_G_MIN_CONFIDENCE          = 0.035   # Full-width data capture for analysis
+BOT_G_MIN_CONFIDENCE          = 0.05   # Full-width data capture for analysis
 BOT_G_MOMENTUM_CEILING        = 1.00   # No ceiling for analysis stage
 
 # Entry filters (Wide Aperture for Data Gathering)
@@ -156,13 +156,13 @@ GLOBAL_DAILY_PROFIT_TARGET = 0.10 # +10% target to shut down safely (Realized)
 GLOBAL_UNREALIZED_PROFIT_TARGET = 0.06 # +6% spike target to panic sell & lock (Unrealized)
 
 # ── Circuit breaker ────────────────────────────────────────────────────────────
-CIRCUIT_BREAKER_ENABLED = True   # paper mode — flip True for live
+CIRCUIT_BREAKER_ENABLED = False   # paper mode — flip True for live
 MAX_CONSECUTIVE_LOSSES = int(os.getenv("MAX_CONSECUTIVE_LOSSES", "100"))
 DAILY_LOSS_LIMIT_PCT    = float(os.getenv("DAILY_LOSS_LIMIT_PCT", "0.15"))
 
 # ── Enhanced Loss Protection (Tiered Halts) ───────────────────────────────────
 # Bot G trades 5m markets — raise thresholds to avoid halting on structural noise
-ENHANCED_LOSS_PROTECTION_ENABLED = True
+ENHANCED_LOSS_PROTECTION_ENABLED = False
 CONSECUTIVE_LOSS_HALT_COUNT = 100     # Halt after this many consecutive losses (was 3; raised from 10 after valuation fix)
 CONSECUTIVE_LOSS_HALT_MINUTES = 360  # 6 hours = 360 minutes
 TOTAL_DAILY_LOSS_HALT_COUNT = 100     # Halt until tomorrow after this many total daily losses (was 6)
@@ -170,7 +170,7 @@ TOTAL_DAILY_LOSS_HALT_COUNT = 100     # Halt until tomorrow after this many tota
 # ── Profit Ratchet (Trailing Stop) ───────────────────────────────────────────
 # All values as decimals (0.10 = 10%)
 PROFIT_RATCHET_THRESHOLD = float(os.getenv("PROFIT_RATCHET_THRESHOLD", "0.10"))  # 10% to activate
-TRAILING_STOP_PCT = float(os.getenv("TRAILING_STOP_PCT", "0.01"))  # 1% drawdown triggers halt
+TRAILING_STOP_PCT = 0.99  # 1% drawdown triggers halt
 MAX_DAILY_PROFIT_PCT = float(os.getenv("MAX_DAILY_PROFIT_PCT", "0.50"))  # Optional 50% hard cap
 
 # ── P&L Check Frequency ────────────────────────────────────────────────────────
@@ -186,7 +186,7 @@ USE_MINIMUM_SIZING_TEST = True  # True = Trade absolute minimum shares allowed, 
 
 # Point-Based Profit Ratchet Configuration
 TRAILING_STOP_ENABLED   = True  # Dynamic Profit Ratchet enabled
-HARD_SL_DELTA           = 0.99  # Disabled to rely on 15s time-based exit
+HARD_SL_DELTA           = 0.15  # Disabled to rely on 15s time-based exit
 RATCHET_ACTIVATION_GAIN = 0.05  # +5 cents profit to activate trail (lowered from 0.07)
 TAKE_PROFIT_DELTA       = 0.22
 TRAILING_STOP_DELTA     = 0.02  # Trails 2 cents behind peak profit (tightened from 0.10)

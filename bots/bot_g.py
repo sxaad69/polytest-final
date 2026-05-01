@@ -182,6 +182,9 @@ class BotG(BaseBot):
 
         # 4. Entry timing
         secs_into_window = time.time() - win_start
+        if secs_into_window < config.NO_ENTRY_FIRST_SECS:
+            self._log_skip(slug, "no_entry_first_secs", f"into={round(secs_into_window,1)}s")
+            return
         if secs_into_window > BOT_G_MAX_ENTRY_SECS_INTO_WIN:
             self._log_skip(slug, "max_secs_into_win", f"into={round(secs_into_window,1)}s")
             return
