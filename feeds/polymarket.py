@@ -59,7 +59,7 @@ class PolymarketFeed:
         # NEW: List of registered executors for event-driven price updates
         self._event_listeners = []
         # NEW: Market Tape Logger — passive tick recorder (set by main.py)
-        self._tape_logger = None
+        self.market_tape = None
         self._binance_ref = None
 
     # ── Compatibility Layer (to avoid breaking Bot A & B) ──────────────────────
@@ -611,7 +611,7 @@ class PolymarketFeed:
                 logger.warning("[FEED] Dynamic WS unsubscribe failed for %s: %s", token_id[:20], e)
                 with open("logs/errors.log", "a") as f:
                     from datetime import datetime
-                    f.write(f"[{datetime.utcnow().isoformat()}] [WS_UNSUB_ERROR] Failed to unsubscribe {token_id}: {e}\\n")
+                    f.write(f"[{datetime.utcnow().isoformat()}] [WS_UNSUB_ERROR] Failed to unsubscribe {token_id}: {e}\n")
 
     async def _seed_from_book(self, tids: list):
         """
@@ -713,14 +713,14 @@ class PolymarketFeed:
                     print(f">>> EYES OPEN: {tid[:12]} moved to {price} ({m_type})")
 
                     # ── Market Tape: record every tick passively ──
-                    if self._tape_logger:
+                    if self.market_tape:
                         try:
                             slug     = self.markets[tid].get("slug", "")
                             asset    = slug.split("-")[0].upper() if slug else "UNKNOWN"
                             bid      = self.markets[tid].get("bid", 0.0)
                             ask      = self.markets[tid].get("ask", 1.0)
                             mom      = self._binance_ref.get_momentum(asset, 30) if self._binance_ref else 0.0
-                            self._tape_logger.log_tick(slug, asset, price, bid, ask, mom)
+                            self.market_tape.record_tick(slug, asset, price, bid, ask, mom)
                         except Exception:
                             pass  # never let logging break the trading loop
 
@@ -935,6 +935,11 @@ class PolymarketFeed:
     async def __aenter__(self):
         self._session = aiohttp.ClientSession()
         return self
+
+    def __init__(self, markets_dict: Dict, market_tape=None):
+        self.markets = markets_dict
+        self.market_tape = market_tape
+        self.ws = None
 
     async def __aexit__(self, *_):
         self._running = False
