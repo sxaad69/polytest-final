@@ -9,6 +9,7 @@ import asyncio
 import logging
 import logging.handlers
 import time
+import config
 from datetime import datetime
 from config import (
     BOT_G_BANKROLL, BOT_G_DB_PATH, BOT_G_MIN_CONFIDENCE,
