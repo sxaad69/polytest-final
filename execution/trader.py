@@ -431,6 +431,7 @@ class ExecutionLayer:
                 "[POST-EXIT] [Bot %s] Trade #%s (%s) | Market window closed — removed from post-exit monitor",
                 self.bot_id, trade_id, asset
             )
+            await self.poly.unsubscribe_token(token_id)
             self._post_exit_positions.pop(trade_id, None)
             return
 

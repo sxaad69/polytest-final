@@ -586,6 +586,25 @@ class PolymarketFeed:
             # WS not connected — mark it so it gets picked up on next reconnect
             logger.debug("[FEED] WS not connected — %s will subscribe on next reconnect", token_id[:20])
 
+    async def unsubscribe_token(self, token_id: str):
+        """Dynamically unsubscribe a single token from the live WebSocket."""
+        if not hasattr(self, '_subscribed_tids') or token_id not in self._subscribed_tids:
+            return
+
+        if self._ws:
+            try:
+                await self._ws.send(json.dumps({
+                    "type": "unsubscribe",
+                    "assets_ids": [token_id],
+                }))
+                self._subscribed_tids.remove(token_id)
+                logger.info("[FEED] Dynamically unsubscribed from expired token %s", token_id[:20])
+            except Exception as e:
+                logger.warning("[FEED] Dynamic WS unsubscribe failed for %s: %s", token_id[:20], e)
+                with open("logs/errors.log", "a") as f:
+                    from datetime import datetime
+                    f.write(f"[{datetime.utcnow().isoformat()}] [WS_UNSUB_ERROR] Failed to unsubscribe {token_id}: {e}\\n")
+
     async def _seed_from_book(self, tids: list):
         """
         High-fidelity initialization: Uses Orderbook + Last Trade Price + Parity.
