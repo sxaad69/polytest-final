@@ -269,10 +269,19 @@ class ExecutionLayer:
     # ── Position monitor ───────────────────────────────────────────────────────
 
     async def start_monitor(self):
+        if not hasattr(self, "price_updated_event"):
+            self.price_updated_event = asyncio.Event()
+
         while True:
             if self._positions or self._post_exit_positions:
                 await self._check_all()
-            await asyncio.sleep(POSITION_POLL_SECS)
+            
+            try:
+                await asyncio.wait_for(self.price_updated_event.wait(), timeout=1.0)
+            except asyncio.TimeoutError:
+                pass  # Wake up every second even if no price tick, to check hard stops
+            finally:
+                self.price_updated_event.clear()
 
     async def on_odds_update(self):
         if self._positions:
@@ -383,7 +392,8 @@ class ExecutionLayer:
         # Update peak odds dynamically
         if current_odds > pos.get("peak_odds", entry_odds):
             pos["peak_odds"] = current_odds
-            self.db.update_peak(trade_id, current_odds)
+            loop = asyncio.get_running_loop()
+            loop.run_in_executor(None, self.db.update_peak, trade_id, current_odds)
 
         # ── Evaluation ────────────────────────────────────────────────────────
         if getattr(config, "TRAILING_STOP_ENABLED", True):
@@ -395,7 +405,9 @@ class ExecutionLayer:
             if current_gain <= -getattr(config, "HARD_SL_DELTA", 0.15):
                 logger.info("[Bot%s] Position %s reached Hard SL (at %.3f)", self.bot_id, trade_id, current_odds)
                 pos_logger.info("[EXIT] [Bot %s] Trade #%s | HARD STOP LOSS TRIGGERED | Price: %.3f", self.bot_id, trade_id, current_odds)
-                await self._exit(trade_id, pos, current_odds, "hard_sl_hit")
+                if not pos.get("is_exiting"):
+                    pos["is_exiting"] = True
+                    asyncio.create_task(self._background_exit(trade_id, pos, current_odds, "hard_sl_hit"))
                 return
 
             # 2. Profit Ratchet Evaluation
@@ -410,13 +422,28 @@ class ExecutionLayer:
                                     trade_id, peak_gain, current_odds)
                     pos_logger.info("[EXIT] [Bot %s] Trade #%s | RATCHET STOP TRIGGERED | Price: %.3f Target: %.3f", 
                                     self.bot_id, trade_id, current_odds, stop_target)
-                    await self._exit(trade_id, pos, current_odds, "profit_ratchet_exit")
+                    if not pos.get("is_exiting"):
+                        pos["is_exiting"] = True
+                        asyncio.create_task(self._background_exit(trade_id, pos, current_odds, "profit_ratchet_exit"))
                     return
 
         # 3. Hard Stop
         if secs_to_end <= getattr(config, "HARD_STOP_SECONDS", 15):
-            await self._exit(trade_id, pos, current_odds, "hard_stop")
+            if not pos.get("is_exiting"):
+                pos["is_exiting"] = True
+                asyncio.create_task(self._background_exit(trade_id, pos, current_odds, "hard_stop"))
             return
+
+    async def _background_exit(self, trade_id: int, pos: dict, odds: float, reason: str):
+        """Fire and forget wrapper for _exit to prevent blocking the evaluation loop."""
+        try:
+            success = await self._exit(trade_id, pos, odds, reason)
+            # If exit fails but doesn't throw exception, reset flag
+            if success is False:
+                pos["is_exiting"] = False
+        except Exception as e:
+            logger.error("[Bot%s] Background exit failed for %s: %s", self.bot_id, trade_id, e)
+            pos["is_exiting"] = False
 
     async def _heartbeat_post_exit(self, trade_id: int, pos: dict):
         """Log price heartbeats for a closed trade until the market window expires."""

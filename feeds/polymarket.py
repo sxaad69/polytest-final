@@ -56,6 +56,8 @@ class PolymarketFeed:
         # last_ws_update_ts on position objects when a live price arrives.
         # Populated via register_executor() at bot startup.
         self._exec_positions = {}
+        # NEW: List of registered executors for event-driven price updates
+        self._event_listeners = []
 
     # ── Compatibility Layer (to avoid breaking Bot A & B) ──────────────────────
 
@@ -63,6 +65,9 @@ class PolymarketFeed:
         """Wire up the shared positions reference so _handle() can update
         last_ws_update_ts on position objects when live WS prices arrive."""
         self._exec_positions = executor._positions
+        if executor not in self._event_listeners:
+            executor.price_updated_event = asyncio.Event()
+            self._event_listeners.append(executor)
 
     @property
     def up_token_id(self): return self._default_up_id
@@ -730,6 +735,11 @@ class PolymarketFeed:
                     # Recalculate best bid/ask for valuation logic
                     if bids: self.markets[tid]["bid"] = float(bids[0].get("price", 0.0))
                     if asks: self.markets[tid]["ask"] = float(asks[0].get("price", 1.0))
+                
+                # ── 4. Trigger Event-Driven Watchdog ──
+                for executor in getattr(self, "_event_listeners", []):
+                    if hasattr(executor, "price_updated_event"):
+                        executor.price_updated_event.set()
 
         except Exception as e:
             logger.debug("WS parse error: %s", e)
