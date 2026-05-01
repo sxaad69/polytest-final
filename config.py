@@ -237,6 +237,13 @@ BOT_G_REJECTION_LOGGING      = True   # Set to False to disable all skip logs
 BOT_G_REJECTION_ONLY_CONSOLE = False  # Set to True to skip writing to log file
 BOT_G_REJECTION_LOG_PATH     = "logs/bot_g_rejections.log"
 
+# ── Market Tape Logger ─────────────────────────────────────────────────────────
+# Records every WebSocket price tick for all 12 markets to a daily CSV file.
+# Zero extra API calls — reads only from the existing live WebSocket stream.
+# Use for backtesting, lag analysis, and confidence threshold research.
+MARKET_TAPE_ENABLED        = True   # Set False to disable all tick logging
+MARKET_TAPE_RETENTION_DAYS = 7      # Auto-delete tape files older than N days
+
 
 # ── Startup validation ─────────────────────────────────────────────────────────
 def validate():

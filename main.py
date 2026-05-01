@@ -30,6 +30,7 @@ from execution.redeemer import Redeemer
 from risk.manager import GlobalRiskManager
 from risk.polymarket_api import PolymarketAPIClient
 from analytics.comparison import print_comparison
+from feeds.market_tape import MarketTapeLogger
 
 import os
 from logging.handlers import RotatingFileHandler
@@ -116,6 +117,17 @@ class Orchestrator:
         logger.info("=" * 60)
 
         self.chainlink = ChainlinkFeed(self.binance)
+
+        # ── Market Tape Logger (passive WebSocket recorder) ────────────────────
+        import config as _cfg
+        if getattr(_cfg, "MARKET_TAPE_ENABLED", False):
+            tape = MarketTapeLogger(
+                log_dir="logs",
+                retention_days=getattr(_cfg, "MARKET_TAPE_RETENTION_DAYS", 7)
+            )
+            self.poly._tape_logger = tape
+            self.poly._binance_ref  = self.binance
+            logger.info("[MarketTape] Tick recorder active — 7-day rolling retention")
 
         async with self.poly:
             # Instantiate active bots

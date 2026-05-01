@@ -58,6 +58,9 @@ class PolymarketFeed:
         self._exec_positions = {}
         # NEW: List of registered executors for event-driven price updates
         self._event_listeners = []
+        # NEW: Market Tape Logger — passive tick recorder (set by main.py)
+        self._tape_logger = None
+        self._binance_ref = None
 
     # ── Compatibility Layer (to avoid breaking Bot A & B) ──────────────────────
 
@@ -708,6 +711,18 @@ class PolymarketFeed:
 
                     # Proof of Vision Log
                     print(f">>> EYES OPEN: {tid[:12]} moved to {price} ({m_type})")
+
+                    # ── Market Tape: record every tick passively ──
+                    if self._tape_logger:
+                        try:
+                            slug     = self.markets[tid].get("slug", "")
+                            asset    = slug.split("-")[0].upper() if slug else "UNKNOWN"
+                            bid      = self.markets[tid].get("bid", 0.0)
+                            ask      = self.markets[tid].get("ask", 1.0)
+                            mom      = self._binance_ref.get_momentum(asset, 30) if self._binance_ref else 0.0
+                            self._tape_logger.log_tick(slug, asset, price, bid, ask, mom)
+                        except Exception:
+                            pass  # never let logging break the trading loop
 
                     # ── 3. Health Guard Update ──
                     if self._exec_positions:
