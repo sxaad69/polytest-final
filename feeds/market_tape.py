@@ -137,10 +137,15 @@ class MarketTapeLogger:
         pattern = os.path.join(self._log_dir, "market_tape_*.csv")
         for path in glob.glob(pattern):
             fname = os.path.basename(path)
-            # Extract date from filename: market_tape_YYYY-MM-DD.csv
+            # Extract date from filename: market_tape_YYYY-MM-DD_HH.csv or market_tape_YYYY-MM-DD.csv
             try:
-                date_str = fname.replace("market_tape_", "").replace(".csv", "")
-                file_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+                # Remove prefix and extension
+                date_part = fname.replace("market_tape_", "").replace(".csv", "")
+                
+                # Take only the date part (YYYY-MM-DD) even if it has _HH
+                date_only = date_part.split("_")[0]
+                
+                file_date = datetime.strptime(date_only, "%Y-%m-%d").date()
                 if file_date < cutoff:
                     os.remove(path)
                     logger.info("[MarketTape] Deleted old tape: %s", fname)
