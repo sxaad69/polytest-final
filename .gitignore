@@ -9,6 +9,7 @@ ENV/
 data/
 logs/
 database/
+!database/*.py
 tmp/
 *.sqlite
 *.db

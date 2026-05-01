@@ -188,6 +188,7 @@ USE_MINIMUM_SIZING_TEST = True  # True = Trade absolute minimum shares allowed, 
 TRAILING_STOP_ENABLED   = True  # Dynamic Profit Ratchet enabled
 HARD_SL_DELTA           = 0.10  # Tightened to 0.05 Razor (Forensic Optimization)
 RATCHET_ACTIVATION_GAIN = 0.05  # +5 cents profit to activate trail (lowered from 0.07)
+TAKE_PROFIT_DELTA       = 0.22
 TRAILING_STOP_DELTA     = 0.02  # Trails 2 cents behind peak profit (tightened from 0.10)
 HARD_STOP_SECONDS     = 15      # Last resort only — exit before binary settlement
 POSITION_POLL_SECS    = 1
@@ -225,7 +226,7 @@ BOT_C_DB_PATH = str(_DATA_DIR / "bot_c_paper.db")
 BOT_D_DB_PATH = str(_DATA_DIR / "bot_d_paper.db")
 BOT_E_DB_PATH = str(_DATA_DIR / "bot_e_paper.db")
 BOT_F_DB_PATH = str(_DATA_DIR / "bot_f_paper.db")
-BOT_G_DB_PATH = "/home/ubuntu/polytest_legacy/data/bot_g_paper.db"
+BOT_G_DB_PATH = str(_DATA_DIR / "bot_g_paper.db")
 
 # ── Logging & Monitoring ───────────────────────────────────────────────────────
 LOG_LEVEL = "INFO"
