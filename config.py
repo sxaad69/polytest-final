@@ -186,10 +186,10 @@ USE_MINIMUM_SIZING_TEST = True  # True = Trade absolute minimum shares allowed, 
 
 # Point-Based Profit Ratchet Configuration
 TRAILING_STOP_ENABLED   = True  # Dynamic Profit Ratchet enabled
-HARD_SL_DELTA           = 0.15  # Disabled to rely on 15s time-based exit
-RATCHET_ACTIVATION_GAIN = 0.05  # +5 cents profit to activate trail (lowered from 0.07)
+HARD_SL_DELTA           = 0.05  # Tightened to 5 cents based on MAE audit results
+RATCHET_ACTIVATION_GAIN = 0.05  # +5 cents profit to activate trail
 TAKE_PROFIT_DELTA       = 0.22
-TRAILING_STOP_DELTA     = 0.02  # Trails 2 cents behind peak profit (tightened from 0.10)
+TRAILING_STOP_DELTA     = 0.05  # Trails 5 cents behind peak profit
 HARD_STOP_SECONDS     = 15      # Last resort only — exit before binary settlement
 POSITION_POLL_SECS    = 1
 POSITION_HEALTH_GUARD_SECS      = 2    # Emergency REST fetch if no WS update for 2s
