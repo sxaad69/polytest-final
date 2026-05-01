@@ -361,8 +361,23 @@ class ExecutionLayer:
 
         # ── Clinical Heartbeat & Ratchet Target Logic ─────────────────────────
         import config
-        current_gain = current_odds - entry_odds if current_odds is not None else 0.0
-        peak_gain    = pos.get("peak_odds", entry_odds) - entry_odds
+        direction = pos.get("direction", "long")
+        if direction == "long":
+            current_gain = current_odds - entry_odds if current_odds is not None else 0.0
+        else:
+            # For Shorts, a price DROP is a gain
+            current_gain = entry_odds - current_odds if current_odds is not None else 0.0
+            
+        peak_gain = pos.get("peak_odds", entry_odds) - entry_odds # This needs to be direction-aware too
+        if direction == "short":
+             # For shorts, peak "odds" should actually be the lowest price reached
+             if current_odds is not None and current_odds < pos.get("peak_odds", entry_odds):
+                 pos["peak_odds"] = current_odds
+             peak_gain = entry_odds - pos.get("peak_odds", entry_odds)
+        else:
+             if current_odds is not None and current_odds > pos.get("peak_odds", entry_odds):
+                 pos["peak_odds"] = current_odds
+             peak_gain = pos.get("peak_odds", entry_odds) - entry_odds
 
         # Heartbeat String formatting
         is_ratchet_on = False
@@ -389,11 +404,11 @@ class ExecutionLayer:
 
         if current_odds is None: return
 
-        # Update peak odds dynamically
-        if current_odds > pos.get("peak_odds", entry_odds):
-            pos["peak_odds"] = current_odds
-            loop = asyncio.get_running_loop()
-            loop.run_in_executor(None, self.db.update_peak, trade_id, current_odds)
+        # (Peak odds are now updated above in the direction-aware block)
+        if current_odds != pos.get("last_peak_saved"):
+             pos["last_peak_saved"] = current_odds
+             loop = asyncio.get_running_loop()
+             loop.run_in_executor(None, self.db.update_peak, trade_id, pos["peak_odds"])
 
         # ── Evaluation ────────────────────────────────────────────────────────
         if getattr(config, "TRAILING_STOP_ENABLED", True):
@@ -410,16 +425,23 @@ class ExecutionLayer:
                     asyncio.create_task(self._background_exit(trade_id, pos, current_odds, "hard_sl_hit"))
                 return
 
-            # 2. Profit Ratchet Evaluation
+            # 2. Profit Ratchet Evaluation (Trailing Stop)
             if peak_gain >= getattr(config, "RATCHET_ACTIVATION_GAIN", 0.10):
-                stop_target = pos["peak_odds"] - getattr(config, "TRAILING_STOP_DELTA", 0.10)
-                # STRICT LOCK: Ensure Stop Loss is never worse than Breakeven.
-                minimum_safe_exit = entry_odds + 0.005 
-                stop_target = max(stop_target, minimum_safe_exit)
+                if direction == "long":
+                    stop_target = pos["peak_odds"] - getattr(config, "TRAILING_STOP_DELTA", 0.10)
+                    # STRICT LOCK: Ensure Stop Loss is never worse than Breakeven.
+                    stop_target = max(stop_target, entry_odds + 0.005)
+                    exit_triggered = current_odds <= stop_target
+                else:
+                    # For Shorts, the stop target is ABOVE the peak (lowest price)
+                    stop_target = pos["peak_odds"] + getattr(config, "TRAILING_STOP_DELTA", 0.10)
+                    # For Shorts, ensure Stop Loss is never higher than Breakeven
+                    stop_target = min(stop_target, entry_odds - 0.005)
+                    exit_triggered = current_odds >= stop_target
 
-                if current_odds <= stop_target:
-                    logger.critical("[RATCHET] Trade %s EXITED | Peak: +%.3f | Exit: %.3f", 
-                                    trade_id, peak_gain, current_odds)
+                if exit_triggered:
+                    logger.critical("[RATCHET] %s Trade %s EXITED | Peak: +%.3f | Exit: %.3f", 
+                                    direction.upper(), trade_id, peak_gain, current_odds)
                     pos_logger.info("[EXIT] [Bot %s] Trade #%s | RATCHET STOP TRIGGERED | Price: %.3f Target: %.3f", 
                                     self.bot_id, trade_id, current_odds, stop_target)
                     if not pos.get("is_exiting"):
