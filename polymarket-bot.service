@@ -1,5 +1,5 @@
 [Unit]
-Description=Polymarket Legacy Bot
+Description=Polymarket Final Bot
 After=network-online.target
 Wants=network-online.target
 StartLimitIntervalSec=60
@@ -8,13 +8,13 @@ StartLimitBurst=3
 [Service]
 Type=simple
 User=ubuntu
-WorkingDirectory=/home/ubuntu/polytest_legacy
-ExecStart=/home/ubuntu/polytest_legacy/.venv/bin/python main.py
+WorkingDirectory=/home/ubuntu/polytest-final
+ExecStart=/home/ubuntu/polytest-final/venv/bin/python main.py
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
-EnvironmentFile=/home/ubuntu/polytest_legacy/.env
+EnvironmentFile=/home/ubuntu/polytest-final/.env
  
 [Install]
 WantedBy=multi-user.target
