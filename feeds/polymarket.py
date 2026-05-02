@@ -134,10 +134,6 @@ class PolymarketFeed:
                 ts_window = int(now // 300) * 300
                 surgical_pattern = f"*-updown-*-{ts_window}"
                 await self.refresh_all_markets(pattern=surgical_pattern)
-
-                # NEW: Automatically wire up newly discovered markets to the WebSocket
-                # This ensures the passive Market Tape (Dashcam) records ticks for ALL markets.
-                await self.resubscribe()
                 
             except Exception as e:
                 logger.error("Discovery loop error: %s", e)
@@ -490,7 +486,6 @@ class PolymarketFeed:
         """Dedicated connection logic with diagnostic prints."""
         self._ws = None
         self._subscribed_tids = set() 
-        self._last_subscribed_ids = set()  # FIX: Force resubscribe on reconnect
         
         try:
             print(f">>> FEED DEBUG: Attempting WS connect to {POLY_WS_URL}")
@@ -616,7 +611,7 @@ class PolymarketFeed:
                 logger.warning("[FEED] Dynamic WS unsubscribe failed for %s: %s", token_id[:20], e)
                 with open("logs/errors.log", "a") as f:
                     from datetime import datetime
-                    f.write(f"[{datetime.utcnow().isoformat()}] [WS_UNSUB_ERROR] Failed to unsubscribe {token_id}: {e}\n")
+                    f.write(f"[{datetime.utcnow().isoformat()}] [WS_UNSUB_ERROR] Failed to unsubscribe {token_id}: {e}\\n")
 
     async def _seed_from_book(self, tids: list):
         """
@@ -690,21 +685,6 @@ class PolymarketFeed:
                 tid = data.get("token_id") or data.get("asset_id") or data.get("market_id")
                 if not tid or tid not in self.markets: continue
 
-                # ── Market Tape: record every raw tick immediately ──
-                if self._tape_logger:
-                    try:
-                        m        = self.markets[tid]
-                        slug     = m.get("slug", "")
-                        asset    = slug.split("-")[0].upper() if slug else "UNKNOWN"
-                        bid      = m.get("bid", 0.0)
-                        ask      = m.get("ask", 1.0)
-                        # Use current midpoint or book-based price
-                        cur_price = m.get("odds") or ((bid + ask) / 2 if bid and ask else 0.0)
-                        mom      = self._binance_ref.get_momentum(asset, 30) if self._binance_ref else 0.0
-                        self._tape_logger.log_tick(slug, asset, cur_price, bid, ask, mom)
-                    except Exception:
-                        pass
-
                 m_type = event.get("event_type") or event.get("type")
 
                 # ── 1. Update Price (Midpoint/Market) ──
@@ -731,8 +711,18 @@ class PolymarketFeed:
 
                     # Proof of Vision Log
                     print(f">>> EYES OPEN: {tid[:12]} moved to {price} ({m_type})")
-                    # Proof of Vision Log
-                    print(f">>> EYES OPEN: {tid[:12]} moved to {price} ({m_type})")
+
+                    # ── Market Tape: record every tick passively ──
+                    if self._tape_logger:
+                        try:
+                            slug     = self.markets[tid].get("slug", "")
+                            asset    = slug.split("-")[0].upper() if slug else "UNKNOWN"
+                            bid      = self.markets[tid].get("bid", 0.0)
+                            ask      = self.markets[tid].get("ask", 1.0)
+                            mom      = self._binance_ref.get_momentum(asset, 30) if self._binance_ref else 0.0
+                            self._tape_logger.log_tick(slug, asset, price, bid, ask, mom)
+                        except Exception:
+                            pass  # never let logging break the trading loop
 
                     # ── 3. Health Guard Update ──
                     if self._exec_positions:
@@ -750,17 +740,20 @@ class PolymarketFeed:
                                     pos["last_ws_update_ts"] = now_ts
 
                 # ── L2 Book Update ──
-                book = data.get("book")
-                if book:
-                    bids = book.get("bids", [])
-                    asks = book.get("asks", [])
+                # Polymarket CLOB sends bids/asks at the TOP LEVEL of the data object
+                bids = data.get("bids")
+                asks = data.get("asks")
+                if bids is not None:
                     self.markets[tid]["bids"] = bids
+                    if bids:
+                        first = bids[0]
+                        self.markets[tid]["bid"] = float(first[0] if isinstance(first, list) else first.get("price", 0.0))
+                if asks is not None:
                     self.markets[tid]["asks"] = asks
-
-                    # Recalculate best bid/ask for valuation logic
-                    if bids: self.markets[tid]["bid"] = float(bids[0].get("price", 0.0))
-                    if asks: self.markets[tid]["ask"] = float(asks[0].get("price", 1.0))
-
+                    if asks:
+                        first = asks[0]
+                        self.markets[tid]["ask"] = float(first[0] if isinstance(first, list) else first.get("price", 1.0))
+                
                 # ── 4. Trigger Event-Driven Watchdog ──
                 for executor in getattr(self, "_event_listeners", []):
                     if hasattr(executor, "price_updated_event"):
@@ -826,6 +819,18 @@ class PolymarketFeed:
                             self.markets[tid]["bid"] = float(book["bids"][0].get("price", mid))
                         if book and book.get("asks"):
                             self.markets[tid]["ask"] = float(book["asks"][0].get("price", mid))
+
+                    # ── Market Tape: record every poll tick ──
+                    if self._tape_logger:
+                        try:
+                            slug  = self.markets[tid].get("slug", "")
+                            asset = slug.split("-")[0].upper() if slug else "UNKNOWN"
+                            bid   = self.markets[tid].get("bid", 0.0)
+                            ask   = self.markets[tid].get("ask", 1.0)
+                            mom   = self._binance_ref.get_momentum(asset, 30) if self._binance_ref else 0.0
+                            self._tape_logger.log_tick(slug, asset, mid, bid, ask, mom)
+                        except Exception:
+                            pass  # never let logging crash the polling loop
 
                     peer_id = m.get("peer_id")
                     if peer_id and peer_id in self.markets:
