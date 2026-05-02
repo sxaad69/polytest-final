@@ -690,6 +690,21 @@ class PolymarketFeed:
                 tid = data.get("token_id") or data.get("asset_id") or data.get("market_id")
                 if not tid or tid not in self.markets: continue
 
+                # ── Market Tape: record every raw tick immediately ──
+                if self._tape_logger:
+                    try:
+                        m        = self.markets[tid]
+                        slug     = m.get("slug", "")
+                        asset    = slug.split("-")[0].upper() if slug else "UNKNOWN"
+                        bid      = m.get("bid", 0.0)
+                        ask      = m.get("ask", 1.0)
+                        # Use current midpoint or book-based price
+                        cur_price = m.get("odds") or ((bid + ask) / 2 if bid and ask else 0.0)
+                        mom      = self._binance_ref.get_momentum(asset, 30) if self._binance_ref else 0.0
+                        self._tape_logger.log_tick(slug, asset, cur_price, bid, ask, mom)
+                    except Exception:
+                        pass
+
                 m_type = event.get("event_type") or event.get("type")
 
                 # ── 1. Update Price (Midpoint/Market) ──
@@ -746,22 +761,6 @@ class PolymarketFeed:
                     if bids: self.markets[tid]["bid"] = float(bids[0].get("price", 0.0))
                     if asks: self.markets[tid]["ask"] = float(asks[0].get("price", 1.0))
 
-                # ── Market Tape: record every tick passively ──
-                # This catches EVERY event (price, trade, or book update)
-                if self._tape_logger:
-                    try:
-                        m        = self.markets[tid]
-                        slug     = m.get("slug", "")
-                        asset    = slug.split("-")[0].upper() if slug else "UNKNOWN"
-                        bid      = m.get("bid", 0.0)
-                        ask      = m.get("ask", 1.0)
-                        # Use the current midpoint/market price as the recorded value
-                        cur_price = m.get("odds") or ((bid + ask) / 2 if bid and ask else 0.0)
-                        mom      = self._binance_ref.get_momentum(asset, 30) if self._binance_ref else 0.0
-                        self._tape_logger.log_tick(slug, asset, cur_price, bid, ask, mom)
-                    except Exception:
-                        pass
-                
                 # ── 4. Trigger Event-Driven Watchdog ──
                 for executor in getattr(self, "_event_listeners", []):
                     if hasattr(executor, "price_updated_event"):
