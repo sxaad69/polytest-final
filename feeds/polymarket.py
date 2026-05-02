@@ -490,6 +490,7 @@ class PolymarketFeed:
         """Dedicated connection logic with diagnostic prints."""
         self._ws = None
         self._subscribed_tids = set() 
+        self._last_subscribed_ids = set()  # FIX: Force resubscribe on reconnect
         
         try:
             print(f">>> FEED DEBUG: Attempting WS connect to {POLY_WS_URL}")
