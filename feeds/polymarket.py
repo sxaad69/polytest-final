@@ -105,39 +105,58 @@ class PolymarketFeed:
         return self.markets.get(self._default_up_id, {}).get("condition_id")
 
     async def start_discovery(self, interval: int = 60):
-        """Background loop to discover all active markets efficiently."""
-        logger.info("Polymarket discovery service starting | interval=%ds", interval)
+        """Background loop to discover all active markets efficiently.
+        
+        Architecture:
+        - Lightweight slug pre-registration runs every 15s (cheap API calls).
+        - Heavy refresh_all_markets runs every 60s (avoids rate limits).
+        - Silent lookahead registers the NEXT window before it opens.
+        """
+        logger.info("Polymarket discovery service starting | slug_interval=15s | refresh_interval=60s")
+        _last_heavy_refresh = 0.0
+
         while True:
             try:
-                # 1. Surgical Strike List Engine (Direct Mathematical Slug Generation)
-                # This replaces the need for bots to call fetch_strike_list_markets() synchronously.
                 import config
                 assets     = getattr(config, "BOT_G_STRIKE_ASSETS", ["btc", "eth", "sol", "bnb", "xrp", "doge"])
                 timeframes = getattr(config, "BOT_G_TIMEFRAMES", {"5m": 300, "15m": 900, "1h": 3600, "4h": 14400})
-                
+
                 now = time.time()
+
+                # ── 1. Lightweight: Surgical Slug Pre-registration (every 15s) ──
+                # Fetches CURRENT window + NEXT window (silent lookahead).
+                # Silent=True means 404 for next-window slugs is expected and NOT logged.
                 fetches = []
                 for asset in assets:
                     for tf_name, tf_secs in timeframes.items():
+                        # Current window
                         ts = int(now // tf_secs) * tf_secs
                         slug = f"{asset}-updown-{tf_name}-{ts}"
                         fetches.append(self._fetch_and_register(slug, ts, tf_secs))
-                
+                        # Silent lookahead: next window (404 here is expected, not an error)
+                        ts_next = ts + tf_secs
+                        slug_next = f"{asset}-updown-{tf_name}-{ts_next}"
+                        fetches.append(self._fetch_and_register(slug_next, ts_next, tf_secs, silent=True))
+
                 if fetches:
-                    # Limit concurrency for discovery to avoid rate limits
-                    logger.debug("Discovery: Fetching %d surgical slugs", len(fetches))
+                    logger.debug("Discovery: Fetching %d surgical slugs (current + lookahead)", len(fetches))
                     for i in range(0, len(fetches), 10):
                         chunk = fetches[i:i+10]
                         await asyncio.gather(*chunk, return_exceptions=True)
 
-                # 2. General discovery for legacy Bot A/B patterns
-                ts_window = int(now // 300) * 300
-                surgical_pattern = f"*-updown-*-{ts_window}"
-                await self.refresh_all_markets(pattern=surgical_pattern)
-                
+                # ── 2. Heavy: General discovery for legacy Bot A/B (every 60s only) ──
+                if now - _last_heavy_refresh >= 60:
+                    ts_window = int(now // 300) * 300
+                    await asyncio.gather(
+                        self.refresh_all_markets(pattern=f"*-updown-*-{ts_window}"),
+                        self.refresh_all_markets(pattern=f"*-updown-*-{ts_window + 300}"),
+                        return_exceptions=True
+                    )
+                    _last_heavy_refresh = now
+
             except Exception as e:
                 logger.error("Discovery loop error: %s", e)
-            await asyncio.sleep(interval)
+            await asyncio.sleep(15)  # Lightweight cycle every 15s
 
     async def _fetch_params(self, p: dict):
         """Helper to fetch from Gamma API with standard active/closed filters."""
@@ -315,13 +334,15 @@ class PolymarketFeed:
         """
         return True
 
-    async def _fetch_and_register(self, slug: str, ts: int, duration: int):
+    async def _fetch_and_register(self, slug: str, ts: int, duration: int, silent: bool = False):
         m = await self._fetch_by_slug(slug)
         if not m:
-            # Clinical Trace: Slug calculation correct but Polymarket returns 404
-            with open("logs/errors.log", "a") as f:
-                ts_readable = datetime.fromtimestamp(ts).strftime('%H:%M:%S')
-                f.write(f"[{ts_readable}] [404] Slug not found: {slug}\n")
+            # silent=True means this is a lookahead slug — 404 is expected, do not log.
+            # silent=False (default) means this is a current-window slug — 404 is a real issue.
+            if not silent:
+                with open("logs/errors.log", "a") as f:
+                    ts_readable = datetime.fromtimestamp(ts).strftime('%H:%M:%S')
+                    f.write(f"[{ts_readable}] [404] Slug not found: {slug}\n")
             return
         
         win_start, win_end = float(ts), float(ts + duration)
