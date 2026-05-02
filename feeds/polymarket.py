@@ -156,7 +156,7 @@ class PolymarketFeed:
 
             except Exception as e:
                 logger.error("Discovery loop error: %s", e)
-            await asyncio.sleep(15)  # Lightweight cycle every 15s
+            await asyncio.sleep(3)  # Lightweight cycle every 3s
 
     async def _fetch_params(self, p: dict):
         """Helper to fetch from Gamma API with standard active/closed filters."""
