@@ -1,0 +1,18 @@
+--- TAPE INTEGRITY REPORT: market_tape_2026-05-02_04.csv ---
+Market Slug                         | Missing Secs | Fidelity %
+-----------------------------------------------------------------
+sol-updown-5m-1777694100            | 299          |       0.3% [SPARSE]
+btc-updown-5m-1777694700            | 299          |       0.3% [SPARSE]
+btc-updown-5m-1777695600            | 299          |       0.3% [SPARSE]
+btc-updown-5m-1777696500            | 299          |       0.3% [SPARSE]
+btc-updown-5m-1777696800            | 299          |       0.3% [SPARSE]
+btc-updown-5m-1777697400            | 102          |      66.0% [SPARSE]
+doge-updown-5m-1777697400           | 281          |       6.3% [SPARSE]
+bnb-updown-5m-1777697400            | 287          |       4.3% [SPARSE]
+eth-updown-5m-1777697400            | 225          |      25.0% [SPARSE]
+xrp-updown-5m-1777697400            | 279          |       7.0% [SPARSE]
+sol-updown-5m-1777697400            | 263          |      12.3% [SPARSE]
+=== FINAL SUMMARY ===
+TOTAL SLUGS ANALYZED: 11
+VERIFIED (HIGH FIDELITY): 0
+UNVERIFIED (SPARSE DATA): 11

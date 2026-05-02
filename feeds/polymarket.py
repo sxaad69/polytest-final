@@ -830,17 +830,7 @@ class PolymarketFeed:
                         self.markets[tid]["history"].append((now, mid))
                         self._update_velocity(tid)
                         
-                        # Also try to get orderbook snapshot for true bid
-                        async with self._session.get(
-                            f"{POLYMARKET_CLOB_URL}/book",
-                            params={"token_id": tid},
-                            timeout=aiohttp.ClientTimeout(total=5)
-                        ) as resp:
-                            book = await resp.json()
-                            if book and book.get("bids"):
-                                self.markets[tid]["bid"] = float(book["bids"][0].get("price", mid))
-                            if book and book.get("asks"):
-                                self.markets[tid]["ask"] = float(book["asks"][0].get("price", mid))
+                        # Orderbook polling removed to prevent bottleneck
 
                         # ── Market Tape: record every poll tick ──
                         if self._tape_logger:

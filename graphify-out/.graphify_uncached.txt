@@ -1,0 +1,7 @@
+/Users/user/Documents/Projects/polytest-final/requirements.txt
+/Users/user/Documents/Projects/polytest-final/IM_HERE_NOW.txt
+/Users/user/Documents/Projects/polytest-final/AUDIT_FINAL_VERDICT.txt
+/Users/user/Documents/Projects/polytest-final/TODO.md
+/Users/user/Documents/Projects/polytest-final/targets.txt
+/Users/user/Documents/Projects/polytest-final/README.md
+/Users/user/Documents/Projects/polytest-final/m_id.txt
