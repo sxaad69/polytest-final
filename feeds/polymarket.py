@@ -814,56 +814,59 @@ class PolymarketFeed:
                 for tid in active_tids:
                     if tid in polled: continue
                     
-                    m = self.markets[tid]
-                    async with self._session.get(
-                        f"{POLYMARKET_CLOB_URL}/midpoint",
-                        params={"token_id": tid},
-                        timeout=aiohttp.ClientTimeout(total=5)
-                    ) as resp:
-                        d = await resp.json()
-                        mid = float(d.get("mid", 0.5))
+                    try:
+                        m = self.markets[tid]
+                        async with self._session.get(
+                            f"{POLYMARKET_CLOB_URL}/midpoint",
+                            params={"token_id": tid},
+                            timeout=aiohttp.ClientTimeout(total=5)
+                        ) as resp:
+                            d = await resp.json()
+                            mid = float(d.get("mid", 0.5))
+                            
+                        self.markets[tid]["odds"] = mid
+                        self.markets[tid]["bid"]  = mid - 0.005 # Fallback seed
+                        self.markets[tid]["ask"]  = mid + 0.005
+                        self.markets[tid]["history"].append((now, mid))
+                        self._update_velocity(tid)
                         
-                    self.markets[tid]["odds"] = mid
-                    self.markets[tid]["bid"]  = mid - 0.005 # Fallback seed
-                    self.markets[tid]["ask"]  = mid + 0.005
-                    self.markets[tid]["history"].append((now, mid))
-                    self._update_velocity(tid)
-                    
-                    # Also try to get orderbook snapshot for true bid
-                    async with self._session.get(
-                        f"{POLYMARKET_CLOB_URL}/book",
-                        params={"token_id": tid},
-                        timeout=aiohttp.ClientTimeout(total=5)
-                    ) as resp:
-                        book = await resp.json()
-                        if book and book.get("bids"):
-                            self.markets[tid]["bid"] = float(book["bids"][0].get("price", mid))
-                        if book and book.get("asks"):
-                            self.markets[tid]["ask"] = float(book["asks"][0].get("price", mid))
+                        # Also try to get orderbook snapshot for true bid
+                        async with self._session.get(
+                            f"{POLYMARKET_CLOB_URL}/book",
+                            params={"token_id": tid},
+                            timeout=aiohttp.ClientTimeout(total=5)
+                        ) as resp:
+                            book = await resp.json()
+                            if book and book.get("bids"):
+                                self.markets[tid]["bid"] = float(book["bids"][0].get("price", mid))
+                            if book and book.get("asks"):
+                                self.markets[tid]["ask"] = float(book["asks"][0].get("price", mid))
 
-                    # ── Market Tape: record every poll tick ──
-                    if self._tape_logger:
-                        try:
-                            slug  = self.markets[tid].get("slug", "")
-                            asset = slug.split("-")[0].upper() if slug else "UNKNOWN"
-                            bid   = self.markets[tid].get("bid", 0.0)
-                            ask   = self.markets[tid].get("ask", 1.0)
-                            mom   = self._binance_ref.get_momentum(asset, 30) if self._binance_ref else 0.0
-                            self._tape_logger.log_tick(slug, asset, mid, bid, ask, mom)
-                        except Exception:
-                            pass  # never let logging crash the polling loop
+                        # ── Market Tape: record every poll tick ──
+                        if self._tape_logger:
+                            try:
+                                slug  = self.markets[tid].get("slug", "")
+                                asset = slug.split("-")[0].upper() if slug else "UNKNOWN"
+                                bid   = self.markets[tid].get("bid", 0.0)
+                                ask   = self.markets[tid].get("ask", 1.0)
+                                mom   = self._binance_ref.get_momentum(asset, 30) if self._binance_ref else 0.0
+                                self._tape_logger.log_tick(slug, asset, mid, bid, ask, mom)
+                            except Exception:
+                                pass  # never let logging crash the polling loop
 
-                    peer_id = m.get("peer_id")
-                    if peer_id and peer_id in self.markets:
-                        self.markets[peer_id]["odds"] = calculate_hedge_price(mid)
-                        self.markets[peer_id]["bid"]  = calculate_hedge_price(self.markets[tid]["ask"])
-                        self.markets[peer_id]["ask"]  = calculate_hedge_price(self.markets[tid]["bid"])
-                        polled.add(peer_id)
+                        peer_id = m.get("peer_id")
+                        if peer_id and peer_id in self.markets:
+                            self.markets[peer_id]["odds"] = calculate_hedge_price(mid)
+                            self.markets[peer_id]["bid"]  = calculate_hedge_price(self.markets[tid]["ask"])
+                            self.markets[peer_id]["ask"]  = calculate_hedge_price(self.markets[tid]["bid"])
+                            polled.add(peer_id)
+                            
+                        polled.add(tid)
+                    except Exception as e:
+                        logger.debug("Poll fallback error for token %s: %s", tid, e)
                         
-                    polled.add(tid)
-                    
             except Exception as e:
-                logger.debug("Poll fallback error: %s", e)
+                logger.debug("Poll fallback outer error: %s", e)
             await asyncio.sleep(3)
 
     # ── Order placement ────────────────────────────────────────────────────────

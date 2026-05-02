@@ -70,8 +70,10 @@ class MarketTapeLogger:
         """Write one tick row to the CSV. Called from PolymarketFeed._handle()."""
         now = datetime.utcnow()
         with self._lock:
-            self._rotate_if_needed(now)
             try:
+                self._rotate_if_needed(now)
+                if not self._writer:
+                    return
                 self._writer.writerow([
                     now.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3],  # ms precision
                     slug,
@@ -121,15 +123,20 @@ class MarketTapeLogger:
         filepath  = os.path.join(self._log_dir, filename)
         is_new    = not os.path.exists(filepath)
 
-        self._file         = open(filepath, "a", newline="", buffering=1)
-        self._writer       = csv.writer(self._file)
-        self._current_date = current_hour_key
+        try:
+            self._file         = open(filepath, "a", newline="", buffering=1)
+            self._writer       = csv.writer(self._file)
+            self._current_date = current_hour_key
 
-        if is_new:
-            self._writer.writerow(_HEADERS)   # write header on brand new files
-            self._file.flush()
+            if is_new:
+                self._writer.writerow(_HEADERS)   # write header on brand new files
+                self._file.flush()
 
-        logger.info("[MarketTape] Logging ticks to %s", filepath)
+            logger.info("[MarketTape] Logging ticks to %s", filepath)
+        except Exception as e:
+            logger.error("[MarketTape] Failed to rotate to %s: %s", filepath, e)
+            self._file = None
+            self._writer = None
 
     def _cleanup_old_files(self) -> None:
         """Delete market_tape_*.csv files older than retention_days."""
