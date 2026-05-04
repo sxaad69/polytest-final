@@ -42,7 +42,7 @@ BOT_C_ENABLED   = False
 BOT_D_ENABLED   = False
 BOT_E_ENABLED   = False
 BOT_F_ENABLED   = False
-BOT_G_ENABLED = True        # Crypto (Universal)
+BOT_G_ENABLED = False        # Crypto (Universal)
 BOT_SNIPER_ENABLED = True   # Minute 1 Sniper
 
 # ── Live conflict rule ─────────────────────────────────────────────────────────
