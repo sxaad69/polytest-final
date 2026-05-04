@@ -315,11 +315,22 @@ class ExecutionLayer:
         refresh_source = "WS"
 
         # ── 5s/10s Proactive Refreshes ───────────────────────────────────────
-        # Proactive refresh via Feed polling (fetch_book removed to prevent bottleneck)
-        pass
+        import config
+        secs_since_ws = now - pos.get("last_ws_update_ts", 0)
+        if secs_since_ws > getattr(config, "POSITION_HEALTH_GUARD_SECS", 2):
+            try:
+                await self.poly.fetch_book(token_id)
+                pos["last_ws_update_ts"] = time.time()
+                refresh_source = "GUARD-REST"
+            except Exception: pass
 
-        # Mandatory refresh via Feed polling (fetch_book removed to prevent bottleneck)
-        pass
+        secs_since_refresh = now - pos.get("last_refresh_ts", 0)
+        if secs_since_refresh > getattr(config, "POSITION_MANDATORY_REFRESH_SECS", 10):
+            try:
+                await self.poly.fetch_book(token_id)
+                pos["last_refresh_ts"] = time.time()
+                refresh_source = "MANDATORY-REST"
+            except Exception: pass
 
         # ── High-Fidelity Valuation (The "Fair Exit" Rule) ───────────────────
         # For Polymarket 5m binary markets, the orderbook always has bid=0.01

@@ -148,8 +148,8 @@ class PolymarketFeed:
                 if now - _last_heavy_refresh >= 60:
                     ts_window = int(now // 300) * 300
                     await asyncio.gather(
-                        self.refresh_all_markets(pattern=f"*-updown-*-{ts_window}"),
-                        self.refresh_all_markets(pattern=f"*-updown-*-{ts_window + 300}"),
+                        self.refresh_all_markets(pattern=f"*-updown-5m-{ts_window}"),
+                        self.refresh_all_markets(pattern=f"*-updown-5m-{ts_window + 300}"),
                         return_exceptions=True
                     )
                     _last_heavy_refresh = now
@@ -830,7 +830,21 @@ class PolymarketFeed:
                         self.markets[tid]["history"].append((now, mid))
                         self._update_velocity(tid)
                         
-                        # Orderbook polling removed to prevent bottleneck
+                        # Also try to get orderbook snapshot for true bid
+                        try:
+                            async with self._session.get(
+                                f"{POLYMARKET_CLOB_URL}/book",
+                                params={"token_id": tid},
+                                timeout=aiohttp.ClientTimeout(total=5)
+                            ) as resp:
+                                if resp.status == 200:
+                                    book = await resp.json()
+                                    if book and book.get("bids"):
+                                        self.markets[tid]["bid"] = float(book["bids"][0].get("price", mid))
+                                    if book and book.get("asks"):
+                                        self.markets[tid]["ask"] = float(book["asks"][0].get("price", mid))
+                        except Exception:
+                            pass
 
                         # ── Market Tape: record every poll tick ──
                         if self._tape_logger:
