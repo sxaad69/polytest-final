@@ -3,6 +3,7 @@
 .venv/
 venv/
 venv
+venv_local/
 ENV/
 
 # Data and Logs
