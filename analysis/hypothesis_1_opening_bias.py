@@ -42,5 +42,8 @@ def analyze_opening_bias(labeled_path):
         print(f"{data['asset']:<8} | {data['open']:<10.3f} | {data['close']:<11.3f} | {direction}")
 
 if __name__ == "__main__":
+    import sys
+    import os
+    csv_path = sys.argv[1] if len(sys.argv) > 1 else '../logs/market_tape_2026-05-02_12.csv'
     # This will be run on the Labeled Hour 10 file once it is downloaded and processed
-    analyze_opening_bias("logs/market_tape_2026-05-02_10_LABELED.csv")
+    analyze_opening_bias(csv_path)

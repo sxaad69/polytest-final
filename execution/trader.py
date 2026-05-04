@@ -96,7 +96,7 @@ class ExecutionLayer:
                 "peak_odds":         t.get("peak_odds", 0.0),
                 "stake_usdc":        stake,
                 "size":              round(stake / entry_odds, 6) if entry_odds > 0 else 0.0,
-                "window_end":        datetime.fromisoformat(t["window_end"]).timestamp() if t.get("window_end") else None,
+                "window_end":        (float(t["window_end"]) if isinstance(t.get("window_end"), (int, float)) else datetime.fromisoformat(t["window_end"]).timestamp()) if t.get("window_end") else None,
                 "confidence":        0.0,  # Legacy restored missing confidence
                 "asset":             t.get("asset", "CRYPTO"),
                 # Health tracking timestamps
@@ -315,11 +315,11 @@ class ExecutionLayer:
         refresh_source = "WS"
 
         # ── 5s/10s Proactive Refreshes ───────────────────────────────────────
-            # Proactive refresh via Feed polling (fetch_book removed to prevent bottleneck)
-            pass
+        # Proactive refresh via Feed polling (fetch_book removed to prevent bottleneck)
+        pass
 
-            # Mandatory refresh via Feed polling (fetch_book removed to prevent bottleneck)
-            pass
+        # Mandatory refresh via Feed polling (fetch_book removed to prevent bottleneck)
+        pass
 
         # ── High-Fidelity Valuation (The "Fair Exit" Rule) ───────────────────
         # For Polymarket 5m binary markets, the orderbook always has bid=0.01

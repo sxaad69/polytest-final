@@ -75,4 +75,7 @@ def run_hypothesis_3(csv_path):
         print("-> HYPOTHESIS REJECTED: Drift win rate is not >70%")
 
 if __name__ == "__main__":
-    run_hypothesis_3('../logs/market_tape_2026-05-02_12.csv')
+    import sys
+    import os
+    csv_path = sys.argv[1] if len(sys.argv) > 1 else '../logs/market_tape_2026-05-02_12.csv'
+    run_hypothesis_3(csv_path)

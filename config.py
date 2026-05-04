@@ -43,6 +43,7 @@ BOT_D_ENABLED   = False
 BOT_E_ENABLED   = False
 BOT_F_ENABLED   = False
 BOT_G_ENABLED = True        # Crypto (Universal)
+BOT_SNIPER_ENABLED = True   # Minute 1 Sniper
 
 # ── Live conflict rule ─────────────────────────────────────────────────────────
 LIVE_CONFLICT_RULE = "higher_confidence"
@@ -55,6 +56,7 @@ BOT_D_BANKROLL = 100.0
 BOT_E_BANKROLL = 100.0
 BOT_F_BANKROLL = 100.0
 BOT_G_BANKROLL = 10000.0  # DATA VOLCANO simulation
+BOT_SNIPER_BANKROLL = 10000.0
 MAX_BET_PCT    = 0.05
 KELLY_FRACTION = 0.25
 
@@ -138,6 +140,13 @@ BOT_G_MIN_SECS_REMAINING      = 60      # Don't enter if < 60s left in window
 # Position management
 BOT_G_MAX_CONCURRENT_TRADES   = 8       # Controlled aggression (was 999 in volcano mode)
 BOT_G_MIN_STAKE               = 1.0     # Minimum stake in USDC
+
+# ── Bot Sniper thresholds ──────────────────────────────────────────────────────
+BOT_SNIPER_STRIKE_ASSETS = ["btc", "eth", "sol", "bnb", "xrp", "doge"]
+SNIPER_MIN_ODDS          = 0.33
+SNIPER_MAX_ODDS          = 0.54
+SNIPER_DIRECTION        = None    # None = both sides, "long", or "short"
+SNIPER_STAKE             = 10.0
 
 # ── Global Exclude patterns ────────────────────────────────────────────────────
 # Noise Purge: These keywords will trigger a clinical skip for any bot scanning markets.
@@ -227,6 +236,7 @@ BOT_D_DB_PATH = str(_DATA_DIR / "bot_d_paper.db")
 BOT_E_DB_PATH = str(_DATA_DIR / "bot_e_paper.db")
 BOT_F_DB_PATH = str(_DATA_DIR / "bot_f_paper.db")
 BOT_G_DB_PATH = str(_DATA_DIR / "bot_g_paper.db")
+BOT_SNIPER_DB_PATH = str(_DATA_DIR / "bot_sniper_paper.db")
 
 # ── Logging & Monitoring ───────────────────────────────────────────────────────
 LOG_LEVEL = "INFO"

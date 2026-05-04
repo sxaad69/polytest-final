@@ -64,4 +64,7 @@ def run_hypothesis_2(csv_path):
     print(lag_df.head().to_string(index=False))
 
 if __name__ == "__main__":
-    run_hypothesis_2('../logs/market_tape_2026-05-02_12.csv')
+    import sys
+    import os
+    csv_path = sys.argv[1] if len(sys.argv) > 1 else '../logs/market_tape_2026-05-02_12.csv'
+    run_hypothesis_2(csv_path)

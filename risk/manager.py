@@ -262,7 +262,7 @@ class GlobalRiskManager:
             "A": config.BOT_A_BANKROLL, "B": config.BOT_B_BANKROLL, 
             "C": config.BOT_C_BANKROLL, "D": config.BOT_D_BANKROLL,
             "E": config.BOT_E_BANKROLL, "F": config.BOT_F_BANKROLL, 
-            "G": config.BOT_G_BANKROLL
+            "G": config.BOT_G_BANKROLL, "SNIPER": getattr(config, "BOT_SNIPER_BANKROLL", 10000.0)
         }
         
         # In live mode, the True starting bankroll is the LIVE wallet balance!
@@ -392,7 +392,7 @@ class GlobalRiskManager:
                     with bot.db._conn() as conn:
                         # Get all unresolved positions
                         positions = conn.execute(
-                            "SELECT id, token_id, stake_usdc, entry_odds FROM positions WHERE resolved=0"
+                            "SELECT id, token_id, stake_usdc, entry_odds FROM trades WHERE resolved=0"
                         ).fetchall()
                         
                         closed_count = 0
@@ -400,7 +400,7 @@ class GlobalRiskManager:
                             pos_id, token_id, stake, entry_odds = pos
                             # Mark as resolved with current market price (simplified)
                             conn.execute(
-                                "UPDATE positions SET resolved=1, exit_odds=?, pnl_usdc=0 WHERE id=?",
+                                "UPDATE trades SET resolved=1, exit_odds=?, pnl_usdc=0 WHERE id=?",
                                 (entry_odds, pos_id)  # Assume flat exit for paper mode
                             )
                             closed_count += 1

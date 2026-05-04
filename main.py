@@ -12,7 +12,7 @@ import time
 from config import (
     PAPER_TRADING, LIVE_CONFLICT_RULE, LOG_LEVEL, 
     BOT_A_ENABLED, BOT_B_ENABLED, BOT_C_ENABLED, BOT_D_ENABLED, 
-    BOT_E_ENABLED, BOT_F_ENABLED, BOT_G_ENABLED,
+    BOT_E_ENABLED, BOT_F_ENABLED, BOT_G_ENABLED, BOT_SNIPER_ENABLED,
     BOT_A_BANKROLL, BOT_B_BANKROLL, BOT_C_BANKROLL, BOT_D_BANKROLL,
     BOT_E_BANKROLL, BOT_F_BANKROLL, BOT_G_BANKROLL, validate,
 )
@@ -26,6 +26,7 @@ from bots.bot_d import BotD
 from bots.bot_e import BotE
 from bots.bot_f import BotF
 from bots.bot_g import BotG
+from bots.bot_sniper import BotSniper
 from execution.redeemer import Redeemer
 from risk.manager import GlobalRiskManager
 from risk.polymarket_api import PolymarketAPIClient
@@ -103,6 +104,7 @@ class Orchestrator:
             (BotE, BOT_E_ENABLED, "E"),
             (BotF, BOT_F_ENABLED, "F"),
             (BotG, BOT_G_ENABLED, "G"),
+            (BotSniper, BOT_SNIPER_ENABLED, "SNIPER"),
         ]
         
         active_registry = [r for r in registry if r[1]]

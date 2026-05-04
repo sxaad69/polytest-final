@@ -105,5 +105,9 @@ def run_transparent_analysis(csv_path):
     print(f"Windows valid for strict Lag Analysis:   {valid_windows_for_lag}")
     print("==================================================")
 
+import sys
 if __name__ == "__main__":
-    run_transparent_analysis('../logs/market_tape_2026-05-02_12.csv')
+    if len(sys.argv) > 1:
+        run_transparent_analysis(sys.argv[1])
+    else:
+        run_transparent_analysis('../logs/market_tape_2026-05-02_12.csv')

@@ -75,4 +75,7 @@ def run_hypothesis_5(csv_path):
     print(f"Filter Accuracy: {accuracy:.2%}")
 
 if __name__ == "__main__":
-    run_hypothesis_5('../logs/market_tape_2026-05-02_12.csv')
+    import sys
+    import os
+    csv_path = sys.argv[1] if len(sys.argv) > 1 else '../logs/market_tape_2026-05-02_12.csv'
+    run_hypothesis_5(csv_path)

@@ -62,6 +62,9 @@ def integrate_and_label(input_path):
     print(f"Total Market Transitions Found: {transitions_found}")
     print(f"Noise Rows Labeled (Placeholder Data): {total_rows - valid_rows}")
 
+import sys
 if __name__ == "__main__":
-    # We'll process Hour 09 to verify the fix
-    integrate_and_label("logs/market_tape_2026-05-02_10.csv")
+    if len(sys.argv) > 1:
+        integrate_and_label(sys.argv[1])
+    else:
+        integrate_and_label(sys.argv[1])
