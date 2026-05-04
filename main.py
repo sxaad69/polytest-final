@@ -153,6 +153,7 @@ class Orchestrator:
                 asyncio.create_task(self.binance.start(),          name="binance_ws"),
                 asyncio.create_task(self.chainlink.start(),        name="chainlink"),
                 asyncio.create_task(self.poly.start_odds_stream(), name="poly_ws"),
+                asyncio.create_task(self.poly._poll_fallback(),    name="poly_poll_fallback"),
                 asyncio.create_task(self.poly.start_discovery(),   name="poly_discovery"),
             ]
             
