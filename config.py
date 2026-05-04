@@ -195,7 +195,7 @@ USE_MINIMUM_SIZING_TEST = True  # True = Trade absolute minimum shares allowed, 
 
 # Point-Based Profit Ratchet Configuration
 TRAILING_STOP_ENABLED   = True  # Dynamic Profit Ratchet enabled
-HARD_SL_DELTA           = 0.05  # Tightened to 5 cents based on MAE audit results
+HARD_SL_DELTA           = 1.80  # Effectively disabled to allow volatility recovery
 RATCHET_ACTIVATION_GAIN = 0.05  # +5 cents profit to activate trail
 TAKE_PROFIT_DELTA       = 0.22
 TRAILING_STOP_DELTA     = 0.05  # Trails 5 cents behind peak profit
