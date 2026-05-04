@@ -368,6 +368,7 @@ class ExecutionLayer:
 
         slug_str = pos.get("slug", f"{asset}-{direction}")
         conf_str = f"{pos.get('confidence', 0):.4f}"
+        secs_since_ws = now - pos.get("last_ws_update_ts", 0)
         pos_logger.info(
             "[HEARTBEAT] [Bot %s] Trade #%s (%s) | Conf: %s | Entry: %.3f | Internal: %s | "
             "%s | Source: %s | WS: %.1fs ago | Secs to end: %.0f",
