@@ -398,6 +398,18 @@ class ExecutionLayer:
             loop.run_in_executor(None, self.db.update_peak, trade_id, current_odds)
 
         # ── Evaluation ────────────────────────────────────────────────────────
+        
+        # 0. Hard Take Profit (Immediate Smash Exit)
+        hard_tp_delta = getattr(config, "HARD_TP_DELTA", 0.0)
+        if hard_tp_delta > 0 and current_gain >= hard_tp_delta:
+            logger.info("[Bot%s] Position %s reached Hard TP (at %.3f)", self.bot_id, trade_id, current_odds)
+            pos_logger.info("[EXIT] [Bot %s] Trade #%s | HARD TAKE PROFIT TRIGGERED | Price: %.3f | Gain: +%.3f", 
+                            self.bot_id, trade_id, current_odds, current_gain)
+            if not pos.get("is_exiting"):
+                pos["is_exiting"] = True
+                asyncio.create_task(self._background_exit(trade_id, pos, current_odds, "hard_tp_exit"))
+            return
+
         if getattr(config, "TRAILING_STOP_ENABLED", True):
             # Recalculate gains after peak update just to be 100% accurate on the edge tick
             current_gain = current_odds - entry_odds
