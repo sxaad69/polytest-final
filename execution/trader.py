@@ -87,6 +87,21 @@ class ExecutionLayer:
             
             entry_odds = t.get("entry_odds", 0.0)
             now = time.time()
+            
+            # Extract the original entry time from DB to accurately resume time-stops
+            entry_str = t.get("ts_entry")
+            if entry_str:
+                try:
+                    from datetime import datetime, timezone
+                    dt = datetime.fromisoformat(entry_str)
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+                    ts_entry_raw = dt.timestamp()
+                except Exception:
+                    ts_entry_raw = now
+            else:
+                ts_entry_raw = now
+
             self._positions[tid] = {
                 "trade_id":          tid,
                 "direction":         t.get("direction"),
@@ -99,6 +114,7 @@ class ExecutionLayer:
                 "window_end":        (float(t["window_end"]) if isinstance(t.get("window_end"), (int, float)) else datetime.fromisoformat(t["window_end"]).timestamp()) if t.get("window_end") else None,
                 "confidence":        0.0,  # Legacy restored missing confidence
                 "asset":             t.get("asset", "CRYPTO"),
+                "ts_entry_raw":      ts_entry_raw,
                 # Health tracking timestamps
                 "last_ws_update_ts": now,
                 "last_refresh_ts":   now,
@@ -242,6 +258,7 @@ class ExecutionLayer:
             "asset":             asset,
             "slug":              slug,
             "confidence":        confidence,
+            "ts_entry_raw":      time.time(),
             # Health tracking timestamps — initialized to now
             "last_ws_update_ts": time.time(),
             "last_refresh_ts":   time.time(),
@@ -441,7 +458,18 @@ class ExecutionLayer:
                         asyncio.create_task(self._background_exit(trade_id, pos, current_odds, "profit_ratchet_exit"))
                     return
 
-        # 3. Hard Stop
+        # 3. Absolute 60-Second Time Stop (The Kill Switch)
+        if getattr(config, "TIME_STOP_ENABLED", False):
+            elapsed = now - pos.get("ts_entry_raw", now)
+            if elapsed >= getattr(config, "TIME_STOP_SECONDS", 60):
+                logger.info("[Bot%s] Position %s reached Absolute Time Stop (%.1fs). Exiting at %.3f.", self.bot_id, trade_id, elapsed, current_odds)
+                pos_logger.info("[EXIT] [Bot %s] Trade #%s | TIME STOP TRIGGERED | Time: %.1fs", self.bot_id, trade_id, elapsed)
+                if not pos.get("is_exiting"):
+                    pos["is_exiting"] = True
+                    asyncio.create_task(self._background_exit(trade_id, pos, current_odds, "time_stop_timeout"))
+                return
+
+        # 4. Hard Stop
         if secs_to_end <= getattr(config, "HARD_STOP_SECONDS", 15):
             if not pos.get("is_exiting"):
                 pos["is_exiting"] = True

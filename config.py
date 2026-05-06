@@ -198,7 +198,9 @@ TRAILING_STOP_ENABLED   = False  # Disabled to let the Smash TP work purely
 HARD_SL_DELTA           = 1.80  # Effectively disabled to allow volatility recovery
 RATCHET_ACTIVATION_GAIN = 0.10  # +10 cents profit to activate trail
 TAKE_PROFIT_DELTA       = 0.22
-HARD_TP_DELTA           = 0.25  # Immediate sell if profit reaches this (smash exit)
+HARD_TP_DELTA           = 0.15  # Immediate sell if profit reaches this (smash exit)
+TIME_STOP_ENABLED       = True  # Enable 60-second absolute kill switch
+TIME_STOP_SECONDS       = 60    # Absolute time limit to reach HARD_TP
 TRAILING_STOP_DELTA     = 0.10  # Trails 10 cents behind peak profit
 HARD_STOP_SECONDS     = 15      # Last resort only — exit before binary settlement
 POSITION_POLL_SECS    = 1
@@ -252,7 +254,7 @@ BOT_G_REJECTION_LOG_PATH     = "logs/bot_g_rejections.log"
 # Records every WebSocket price tick for all 12 markets to a daily CSV file.
 # Zero extra API calls — reads only from the existing live WebSocket stream.
 # Use for backtesting, lag analysis, and confidence threshold research.
-MARKET_TAPE_ENABLED        = True   # Set False to disable all tick logging
+MARKET_TAPE_ENABLED        = False  # Set False to disable all tick logging
 MARKET_TAPE_RETENTION_DAYS = 7      # Auto-delete tape files older than N days
 
 
