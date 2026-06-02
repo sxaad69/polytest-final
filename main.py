@@ -169,7 +169,14 @@ class Orchestrator:
                 tasks.append(asyncio.create_task(
                     self._conflict_monitor(), name="conflict_monitor"
                 ))
-            
+
+            # Auto-Redemption Loop (Live only) — claims resolved wins every 5 minutes
+            # so USDC returns to wallet before the next window opens.
+            if not PAPER_TRADING:
+                tasks.append(asyncio.create_task(
+                    self._redemption_loop(), name="redemption_loop"
+                ))
+
             # Global Health Monitor
             tasks.append(asyncio.create_task(self._health_monitor(), name="health_monitor"))
 
@@ -182,6 +189,93 @@ class Orchestrator:
                 logger.error("Fatal: %s", e, exc_info=True)
             finally:
                 await self._shutdown(tasks)
+
+    async def _redemption_loop(self):
+        """Live mode: auto-redeems resolved winning tokens every 5 minutes.
+        
+        Polymarket does NOT auto-return USDC after market settlement.
+        Winners must call the CTF redeem() function on Polygon to reclaim their USDC.
+        Without this loop, the wallet balance depletes after the first window.
+        """
+        import requests
+        import json
+        from datetime import datetime
+        GAMMA_API = "https://gamma-api.polymarket.com"
+
+        logger.info("[REDEEMER] Auto-redemption loop active — scanning every 5 minutes")
+        redeemer = Redeemer()
+        while self._running:
+            # Wait ~10s after each 5m boundary to let settlements propagate
+            await asyncio.sleep(310)
+            try:
+                # Step 1: Query Polymarket for Truth Resolution
+                for bid, bot in self.bots.items():
+                    with bot.db._conn() as conn:
+                        unresolved = conn.execute("SELECT * FROM trades WHERE resolved=0 AND exit_odds IS NULL").fetchall()
+                    unresolved = [dict(r) for r in unresolved]
+                    
+                    if unresolved:
+                        slugs = list(set([t["slug"] for t in unresolved if t.get("slug")]))
+                        if slugs:
+                            logger.info("[REDEEMER] Bot %s: Asking Polymarket API for truth on %d pending slugs...", bid, len(slugs))
+                            for slug in slugs:
+                                try:
+                                    resp = await asyncio.to_thread(requests.get, f"{GAMMA_API}/events", params={"slug": slug}, timeout=10)
+                                    if not resp.json(): continue
+                                    event = resp.json()[0]
+                                    market = event["markets"][0]
+                                    prices = json.loads(market.get("outcomePrices", "[0,0]"))
+                                    
+                                    up_price = float(prices[0])
+                                    down_price = float(prices[1])
+                                    
+                                    winner = None
+                                    if up_price == 1.0: winner = "long"
+                                    elif down_price == 1.0: winner = "short"
+                                    
+                                    if winner:
+                                        for t in unresolved:
+                                            if t["slug"] == slug:
+                                                exit_odds = 1.0 if str(t["direction"]).lower() == winner else 0.0
+                                                bot.db.log_exit(t["id"], {
+                                                    "ts_exit": datetime.utcnow().isoformat(),
+                                                    "entry_odds": t["entry_odds"],
+                                                    "exit_odds": exit_odds,
+                                                    "peak_odds": t.get("peak_odds", 1.0),
+                                                    "stake_usdc": t["stake_usdc"],
+                                                    "exit_reason": "truth_settled",
+                                                    "chainlink_close": 0
+                                                })
+                                                logger.info("[REDEEMER] Trade #%s Truth Settled: Resolved %s | Exit Odds: %.1f", 
+                                                            t["id"], winner.upper(), exit_odds)
+                                except Exception as e:
+                                    logger.error("[REDEEMER] Gamma API error for %s: %s", slug, e)
+
+                # Step 2: Proceed with Blockchain Redemption
+                total_redeemed = 0
+                for bid, bot in self.bots.items():
+                    unredeemed = bot.db.get_unredeemed_wins()
+                    if not unredeemed:
+                        continue
+                    logger.info("[REDEEMER] Bot %s: %d unredeemed wins found — redeeming...",
+                                bid, len(unredeemed))
+                    for trade in unredeemed:
+                        success = redeemer.redeem(
+                            trade["market_condition_id"],
+                            [trade["outcome_index"] + 1]  # Polymarket indexSet is 1-indexed
+                        )
+                        if success:
+                            bot.db.mark_redeemed(trade["id"])
+                            total_redeemed += 1
+                            logger.info("[REDEEMER] ✅ Redeemed trade #%s | condition=%s...",
+                                        trade['id'], trade['market_condition_id'][:12])
+                        else:
+                            logger.warning("[REDEEMER] ❌ Failed to redeem trade #%s", trade['id'])
+                if total_redeemed:
+                    logger.info("[REDEEMER] Cycle complete — %d wins redeemed, USDC returned to wallet",
+                                total_redeemed)
+            except Exception as e:
+                logger.error("[REDEEMER] Loop error: %s", e, exc_info=True)
 
     async def _health_monitor(self):
         """Monitors global circuit breaker across all bots."""

@@ -2,7 +2,10 @@
 Polymarket Dual-Bot — Config v4
 All settings derived from paper trading data analysis.
 
-Data summary (3000+ trades across v1/v2/v3):
+Data summary (3000+ trades across v1/v2/v3/v4/v5):
+  ✓ v5: Removed 5c Stop Loss — killed 67% of eventual winners.
+  ✓ v5: Implemented 120s Momentum Filter — exit if peak gain < 0.10.
+  ✓ v5: Target Profit increased to 0.40 — 43% signal accuracy is sufficient.
   ✓ Middle 3 minutes (60-240s elapsed) = 67-68% win rate
   ✓ First 60s = unstable odds, avoid
   ✓ Last 60s = odds decided, avoid
@@ -56,7 +59,7 @@ BOT_D_BANKROLL = 100.0
 BOT_E_BANKROLL = 100.0
 BOT_F_BANKROLL = 100.0
 BOT_G_BANKROLL = 10000.0  # DATA VOLCANO simulation
-BOT_SNIPER_BANKROLL = 10000.0
+BOT_SNIPER_BANKROLL = 50.0
 MAX_BET_PCT    = 0.05
 KELLY_FRACTION = 0.25
 
@@ -143,10 +146,12 @@ BOT_G_MIN_STAKE               = 1.0     # Minimum stake in USDC
 
 # ── Bot Sniper thresholds ──────────────────────────────────────────────────────
 BOT_SNIPER_STRIKE_ASSETS = ["btc", "eth", "sol", "bnb", "xrp", "doge"]
-SNIPER_MIN_ODDS          = 0.33
-SNIPER_MAX_ODDS          = 0.54
-SNIPER_DIRECTION        = None    # None = both sides, "long", or "short"
-SNIPER_STAKE             = 10.0
+SNIPER_MIN_ODDS          = 0.70
+SNIPER_MAX_ODDS          = 0.85
+SNIPER_DIRECTION         = "both"    # Take whichever side is dominating
+SNIPER_LATE_ENTRY_START_MIN = 3.5    # Start scanning at 3.5 mins
+SNIPER_LATE_ENTRY_END_MIN   = 4.5    # Stop scanning at 4.5 mins
+SNIPER_STAKE             = 5.0       # Standardized stake
 
 # ── Global Exclude patterns ────────────────────────────────────────────────────
 # Noise Purge: These keywords will trigger a clinical skip for any bot scanning markets.
@@ -158,14 +163,16 @@ GLOBAL_EXCLUDE_KEYWORDS = [
 ]
 
 # ── Global Portfolio Risk ──────────────────────────────────────────────────────
-GLOBAL_MAX_EXPOSURE_PCT = 0.30   # Max 30% of total bankroll in flight at once
-GLOBAL_DAILY_LOSS_LIMIT = 0.99   # 20% across all bots triggers global sleep mode
-GLOBAL_HALT_DURATION_MINUTES = 5.0 # How long to freeze the bots after max loss
-GLOBAL_DAILY_PROFIT_TARGET = 0.10 # +10% target to shut down safely (Realized)
-GLOBAL_UNREALIZED_PROFIT_TARGET = 0.06 # +6% spike target to panic sell & lock (Unrealized)
+# SNIPER MODE: All risk is managed per-trade (momentum filter + 4min safety + binary settlement)
+# Portfolio-level halts are disabled to avoid interfering with the 5-minute settlement lifecycle.
+GLOBAL_MAX_EXPOSURE_PCT = 1.00   # Disabled — Sniper manages exposure per trade
+GLOBAL_DAILY_LOSS_LIMIT = 0.99   # Effectively disabled (99% loss limit)
+GLOBAL_HALT_DURATION_MINUTES = 0.0 # No halt duration
+GLOBAL_DAILY_PROFIT_TARGET = 99.0  # Effectively disabled
+GLOBAL_UNREALIZED_PROFIT_TARGET = 0.0 # DISABLED — do not liquidate on unrealized spikes
 
 # ── Circuit breaker ────────────────────────────────────────────────────────────
-CIRCUIT_BREAKER_ENABLED = False   # paper mode — flip True for live
+CIRCUIT_BREAKER_ENABLED = False   # DISABLED — Sniper manages risk per trade
 MAX_CONSECUTIVE_LOSSES = int(os.getenv("MAX_CONSECUTIVE_LOSSES", "100"))
 DAILY_LOSS_LIMIT_PCT    = float(os.getenv("DAILY_LOSS_LIMIT_PCT", "0.15"))
 
@@ -178,8 +185,8 @@ TOTAL_DAILY_LOSS_HALT_COUNT = 100     # Halt until tomorrow after this many tota
 
 # ── Profit Ratchet (Trailing Stop) ───────────────────────────────────────────
 # All values as decimals (0.10 = 10%)
-PROFIT_RATCHET_THRESHOLD = float(os.getenv("PROFIT_RATCHET_THRESHOLD", "0.10"))  # 10% to activate
-TRAILING_STOP_PCT = 0.99  # 1% drawdown triggers halt
+PROFIT_RATCHET_THRESHOLD = float(os.getenv("PROFIT_RATCHET_THRESHOLD", "99.0"))  # DISABLED — set to 9900% to never activate
+TRAILING_STOP_PCT = 0.99  # Irrelevant while threshold is disabled
 MAX_DAILY_PROFIT_PCT = float(os.getenv("MAX_DAILY_PROFIT_PCT", "0.50"))  # Optional 50% hard cap
 
 # ── P&L Check Frequency ────────────────────────────────────────────────────────
@@ -195,12 +202,12 @@ USE_MINIMUM_SIZING_TEST = True  # True = Trade absolute minimum shares allowed, 
 
 # Point-Based Profit Ratchet Configuration
 TRAILING_STOP_ENABLED   = False  # Disabled to let the Smash TP work purely
-HARD_SL_DELTA           = 1.80  # Effectively disabled to allow volatility recovery
+HARD_SL_DELTA           = 1.00  # Effectively disabled to allow volatility recovery
 RATCHET_ACTIVATION_GAIN = 0.10  # +10 cents profit to activate trail
 TAKE_PROFIT_DELTA       = 0.22
-HARD_TP_DELTA           = 0.15  # Immediate sell if profit reaches this (smash exit)
-TIME_STOP_ENABLED       = True  # Enable 60-second absolute kill switch
-TIME_STOP_SECONDS       = 60    # Absolute time limit to reach HARD_TP
+HARD_TP_DELTA           = 0.00  # Disabled: Hold for full binary settlement
+TIME_STOP_ENABLED       = True  # Enable absolute kill switch
+TIME_STOP_SECONDS       = 120   # 2-Minute Strength Test
 TRAILING_STOP_DELTA     = 0.10  # Trails 10 cents behind peak profit
 HARD_STOP_SECONDS     = 15      # Last resort only — exit before binary settlement
 POSITION_POLL_SECS    = 1

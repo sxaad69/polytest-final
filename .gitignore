@@ -28,3 +28,10 @@ out2.txt
 
 # Backups
 backup_*/
+
+# Large files
+Codex.dmg
+
+# Local scratch and temp analysis files
+scratch/
+price_history/

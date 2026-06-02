@@ -191,8 +191,8 @@ class BaseBot:
         if self.poly.seconds_elapsed < NO_ENTRY_FIRST_SECS:
             return
 
-        token = (self.poly.up_token_id if (self.binance.momentum_30s or 0) >= 0
-                 else self.poly.down_token_id)
+        # FORCE LONG-ONLY: We only ever take the UP token.
+        token = self.poly.up_token_id
         if token:
             await self.poly.fetch_book(token)
 

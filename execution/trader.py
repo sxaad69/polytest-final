@@ -398,9 +398,10 @@ class ExecutionLayer:
         conf_str = f"{pos.get('confidence', 0):.4f}"
         secs_since_ws = now - pos.get("last_ws_update_ts", 0)
         pos_logger.info(
-            "[HEARTBEAT] [Bot %s] Trade #%s (%s) | Conf: %s | Entry: %.3f | Internal: %s | "
+            "[HEARTBEAT] [Bot %s] Trade #%s (%s) [%s] | Conf: %s | Entry: %.3f | Peak: %.3f | Current: %s | "
             "%s | Source: %s | WS: %.1fs ago | Secs to end: %.0f",
-            self.bot_id, trade_id, slug_str, conf_str, entry_odds,
+            self.bot_id, trade_id, slug_str, direction.upper(), conf_str, entry_odds,
+            pos.get("peak_odds", entry_odds),
             f"{current_odds:.3f}" if current_odds is not None else "NO-PRICE",
             status_str,
             refresh_source, secs_since_ws, secs_to_end
@@ -458,23 +459,10 @@ class ExecutionLayer:
                         asyncio.create_task(self._background_exit(trade_id, pos, current_odds, "profit_ratchet_exit"))
                     return
 
-        # 3. Absolute 60-Second Time Stop (The Kill Switch)
-        if getattr(config, "TIME_STOP_ENABLED", False):
-            elapsed = now - pos.get("ts_entry_raw", now)
-            if elapsed >= getattr(config, "TIME_STOP_SECONDS", 60):
-                logger.info("[Bot%s] Position %s reached Absolute Time Stop (%.1fs). Exiting at %.3f.", self.bot_id, trade_id, elapsed, current_odds)
-                pos_logger.info("[EXIT] [Bot %s] Trade #%s | TIME STOP TRIGGERED | Time: %.1fs", self.bot_id, trade_id, elapsed)
-                if not pos.get("is_exiting"):
-                    pos["is_exiting"] = True
-                    asyncio.create_task(self._background_exit(trade_id, pos, current_odds, "time_stop_timeout"))
-                return
+        # 3. 2-Minute Momentum Filter (Strength Test) - DISABLED FOR LATE SNIPER
+        # 4. Minute-4 Safety Check - DISABLED FOR LATE SNIPER
 
-        # 4. Hard Stop
-        if secs_to_end <= getattr(config, "HARD_STOP_SECONDS", 15):
-            if not pos.get("is_exiting"):
-                pos["is_exiting"] = True
-                asyncio.create_task(self._background_exit(trade_id, pos, current_odds, "hard_stop"))
-            return
+        # 5. Hold for full Binary Settlement — no ceiling, no hard stop.
 
     async def _background_exit(self, trade_id: int, pos: dict, odds: float, reason: str):
         """Fire and forget wrapper for _exit to prevent blocking the evaluation loop."""

@@ -68,9 +68,12 @@ class BotSniper(BotG):
         now = time.time()
         elapsed_secs = now - win_start
 
-        # ── GATE 1: TIME (Minute 1 Sniper) ──────────────────────────────────
-        if elapsed_secs > 60:
-            self._log_skip(slug, "not_minute_1", f"elapsed={round(elapsed_secs, 1)}s")
+        # ── GATE 1: TIME (Late Sniper) ──────────────────────────────────
+        start_secs = config.SNIPER_LATE_ENTRY_START_MIN * 60
+        end_secs = config.SNIPER_LATE_ENTRY_END_MIN * 60
+        if elapsed_secs < start_secs or elapsed_secs > end_secs:
+            # Uncomment below to debug skips, but it's very noisy
+            # self._log_skip(slug, "not_in_late_window", f"elapsed={round(elapsed_secs, 1)}s")
             return
         if elapsed_secs < 0:
             return
@@ -87,13 +90,13 @@ class BotSniper(BotG):
 
         # YES Check
         if config.SNIPER_MIN_ODDS <= current_price <= config.SNIPER_MAX_ODDS:
-            if config.SNIPER_DIRECTION in ["long", None]:
+            if config.SNIPER_DIRECTION in ["long", None, "both"]:
                 direction = "long"
                 trade_token_id = tid
                 trade_odds = current_price
         
         # NO Check (only if YES didn't trigger)
-        if not direction and config.SNIPER_DIRECTION in ["short", None]:
+        if not direction and config.SNIPER_DIRECTION in ["short", None, "both"]:
             no_price = round(1.0 - current_price, 4)
             if config.SNIPER_MIN_ODDS <= no_price <= config.SNIPER_MAX_ODDS:
                 peer_id = m.get("peer_id") or self.poly.get_peer_id(tid)
