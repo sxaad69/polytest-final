@@ -149,7 +149,7 @@ BOT_SNIPER_STRIKE_ASSETS = ["btc", "eth", "sol", "bnb", "xrp", "doge"]
 SNIPER_MIN_ODDS          = 0.501
 SNIPER_MAX_ODDS          = 0.99
 SNIPER_DIRECTION         = "both"    # Take whichever side is dominating
-SNIPER_LATE_ENTRY_START_MIN = 3.0    # Start scanning at 3.0 mins
+SNIPER_LATE_ENTRY_START_MIN = 3.75   # Start scanning at 3:45 mins
 SNIPER_LATE_ENTRY_END_MIN   = 6.0    # Stop scanning at 6.0 mins (effectively never)
 SNIPER_STAKE             = 5.0       # Standardized stake
 
