@@ -35,6 +35,11 @@ class BotG(BaseBot):
         self._signal = BotGSignal(min_confidence=BOT_G_MIN_CONFIDENCE)
         self.max_concurrent_trades = BOT_G_MAX_CONCURRENT_TRADES
         self._traded_markets = {}  # Cache to enforce strict one-trade-per-market lockout
+        self.price_updated_event = asyncio.Event()
+        if not hasattr(self.poly, "_event_listeners"):
+            self.poly._event_listeners = []
+        if self not in self.poly._event_listeners:
+            self.poly._event_listeners.append(self)
         self._setup_rejection_logger()
 
     def _setup_rejection_logger(self):
@@ -84,6 +89,11 @@ class BotG(BaseBot):
                 target_markets = {}
                 now = time.time()
                 active_slugs = set()
+                
+                # Cleanup expired websocket subscriptions
+                if not hasattr(self, "_active_ws_tokens"):
+                    self._active_ws_tokens = set()
+                current_active_tokens = set()
                 assets = getattr(config, "BOT_G_STRIKE_ASSETS", [])
                 tfs    = getattr(config, "BOT_G_TIMEFRAMES", {})
                 for asset in assets:
@@ -95,6 +105,16 @@ class BotG(BaseBot):
                 for tid, m in self.poly.markets.items():
                     if m.get("slug") in active_slugs:
                         target_markets[tid] = m
+                        current_active_tokens.add(tid)
+                        if m.get("peer_id"):
+                            current_active_tokens.add(m.get("peer_id"))
+                            
+                for expired_tid in self._active_ws_tokens - current_active_tokens:
+                    try:
+                        await self.poly.unsubscribe_token(expired_tid)
+                    except Exception:
+                        pass
+                self._active_ws_tokens = current_active_tokens
 
                 # 2. Write the .txt log (Title | URL) for the user dashboard
                 if getattr(config, "WRITE_SCANNED_MARKETS_TXT", False):
@@ -132,7 +152,20 @@ class BotG(BaseBot):
             except Exception as e:
                 self._log.error("Bot G loop error: %s", e, exc_info=True)
 
-            await asyncio.sleep(10)
+            try:
+                await asyncio.wait_for(self.price_updated_event.wait(), timeout=5.0)
+            except asyncio.TimeoutError:
+                # Fallback: force REST fetch if WS is dead
+                for tid, m in target_markets.items():
+                    try:
+                        await self.poly.fetch_book(tid)
+                        peer_id = m.get("peer_id")
+                        if peer_id:
+                            await self.poly.fetch_book(peer_id)
+                    except Exception:
+                        pass
+            finally:
+                self.price_updated_event.clear()
 
     async def _evaluate_market(self, tid: str, m: dict):
         # Extract market identity first so we can gate on it
@@ -160,12 +193,8 @@ class BotG(BaseBot):
 
         secs_remaining = win_end - time.time()
 
-        # 1. High-Fidelity Price Discovery
-        await self.poly.fetch_book(tid)
+        # 1. High-Fidelity Price Discovery (Now Event-Driven via WS cache)
         peer_id = m.get("peer_id")
-        if peer_id:
-            await self.poly.fetch_book(peer_id)
-            
         current_price = self._get_fair_value(tid)
         if current_price is None:
             self._log_skip(slug, "price_discovery_failed")

@@ -109,7 +109,9 @@ class BotSniper(BotG):
                     return
 
         if not direction:
-            self._log_skip(slug, "odds_out_of_band", f"price={round(current_price, 3)}")
+            up_p = round(current_price, 3)
+            down_p = round(1.0 - current_price, 3)
+            self._log_skip(slug, "odds_out_of_band", f"up_price={up_p} | down_price={down_p}")
             return
 
         # ── EXECUTION ──────────────────────────────────────────────────────
@@ -121,6 +123,9 @@ class BotSniper(BotG):
         entry_price = round(min(0.98, trade_odds + SLIPPAGE), 4)
 
         logger.info(f"[BotSniper] TRIGGER | {slug} | dir={direction} odds={trade_odds:.3f}")
+        
+        # APPLY LOCK IMMEDIATELY TO PREVENT RACE CONDITIONS
+        self._traded_markets[market_id] = win_end
         
         trade_id = await self.executor.enter(
             direction=direction,
@@ -137,5 +142,6 @@ class BotSniper(BotG):
             slug=slug,
         )
 
-        if trade_id:
-            self._traded_markets[market_id] = win_end
+        if not trade_id:
+            # Revert lock if trade failed
+            del self._traded_markets[market_id]

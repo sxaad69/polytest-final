@@ -649,9 +649,10 @@ class PolymarketFeed:
                 m = self.markets.get(tid)
                 if not m: continue
                 
-                has_book = m.get("bids") and m.get("asks")
-                if not has_book and m.get("peer_id"):
-                    # This side is blank, try to seed from peer parity
+                # 2. Always fetch the peer token to ensure we capture LTP from both sides of the market.
+                # Previously, this was gated by `not has_book`, which caused the bot to ignore the peer's LTP
+                # if the primary side had "dust" orders at 0.01/0.99.
+                if m.get("peer_id"):
                     peer_id = m["peer_id"]
                     await self.fetch_book(peer_id)
                     pm = self.markets.get(peer_id)
