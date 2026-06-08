@@ -33,6 +33,7 @@ GAMMA_API = "https://gamma-api.polymarket.com"
 DB_PATH = "data/bot_sniper_paper.db"
 CACHE_FILE = "logs/slug_truth_cache.txt"
 RATE_LIMIT_SEC = 0.5  # 2 requests/sec — safe for Gamma API
+SINCE_DATE = "2026-06-05 20:15:00"  # Only fetch/update trades from the 2-day run
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -78,15 +79,16 @@ def fetch_truth_from_api(slug: str) -> str:
 
 
 def get_all_slugs_from_db() -> list:
-    """Get every unique slug from the database that needs truth checking."""
+    """Get every unique slug from the 2-day run that needs truth checking."""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute("""
         SELECT DISTINCT slug, direction
         FROM trades
         WHERE slug IS NOT NULL
-        AND exit_reason != 'truth_settled'
-    """)
+        AND ts_entry >= ?
+        AND (exit_reason IS NULL OR exit_reason != 'truth_settled')
+    """, (SINCE_DATE,))
     rows = cur.fetchall()
     conn.close()
     return rows  # list of (slug, direction)
@@ -160,9 +162,10 @@ def update_mode():
         SELECT id, direction, slug, stake_usdc, entry_odds
         FROM trades
         WHERE slug IS NOT NULL
+        AND ts_entry >= ?
         AND exit_reason IS NULL
         AND resolved = 0
-    """)
+    """, (SINCE_DATE,))
     trades = [dict(r) for r in cur.fetchall()]
     print(f"[UPDATE] Found {len(trades)} unresolved held trades to update.")
 
@@ -205,7 +208,8 @@ def stats_mode():
         SELECT id, direction, slug, stake_usdc, entry_odds, exit_reason
         FROM trades
         WHERE slug IS NOT NULL
-    """)
+        AND ts_entry >= ?
+    """, (SINCE_DATE,))
     trades = [dict(r) for r in cur.fetchall()]
     conn.close()
 

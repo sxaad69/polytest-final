@@ -139,7 +139,9 @@ class ExecutionLayer:
                     token_id: str = None, entry_odds: float = None,
                     market_id: str = None, win_end: float = None,
                     win_start: float = None, condition_id: str = None,
-                    asset: str = None, slug: str = None):
+                    asset: str = None, slug: str = None,
+                    binance_price: float = None, chainlink_price_entry: float = None,
+                    chainlink_lag: float = None):
         # Backward compatibility for legacy bots (A/B)
         if not token_id:
             if direction == "long":
@@ -236,6 +238,9 @@ class ExecutionLayer:
             "clob_order_id":       order_id,
             "taker_fee_bps":       self.poly.taker_fee_bps,
             "chainlink_open":      None,
+            "binance_price":       binance_price,
+            "chainlink_price_entry": chainlink_price_entry,
+            "chainlink_lag":       chainlink_lag,
             "asset":               asset,
             "slug":                slug,
             "confidence":          confidence,
@@ -416,7 +421,87 @@ class ExecutionLayer:
             loop.run_in_executor(None, self.db.update_peak, trade_id, current_odds)
 
         # ── Evaluation ────────────────────────────────────────────────────────
-        
+
+        # ── SNIPER DUAL-WINDOW EXIT LOGIC ─────────────────────────────────────
+        # Sniper modes are identified by confidence value stored at entry:
+        #   confidence == 1.0 → Sniper 1 (Early, 15–60s)
+        #   confidence == 2.0 → Sniper 2 (Late, 225s+)
+        # This block intercepts and handles all Sniper exits before the global
+        # ratchet/TP logic runs — keeping Sniper completely self-contained.
+        if self.bot_id == "SNIPER":
+            sniper_mode = pos.get("confidence", 0.0)
+            secs_held   = now - pos.get("ts_entry_raw", now)
+
+            if sniper_mode == 1.0:
+                # ── Sniper 1 exits ────────────────────────────────────────────
+                tp_delta   = getattr(config, "SNIPER_1_TP_DELTA", 0.10)
+                sl_delta   = getattr(config, "SNIPER_1_SL_DELTA", 0.08)
+                time_stop  = getattr(config, "SNIPER_1_TIME_STOP_SECS", 120)
+
+                # Take Profit: +10c
+                if current_gain >= tp_delta:
+                    pos_logger.info(
+                        "[EXIT] [Bot SNIPER][S1] Trade #%s | TAKE PROFIT | Price: %.3f | Gain: +%.3f",
+                        trade_id, current_odds, current_gain
+                    )
+                    if not pos.get("is_exiting"):
+                        pos["is_exiting"] = True
+                        asyncio.create_task(self._background_exit(trade_id, pos, current_odds, "sniper1_tp"))
+                    return
+
+                # Stop Loss: -8c
+                if current_gain <= -sl_delta:
+                    pos_logger.info(
+                        "[EXIT] [Bot SNIPER][S1] Trade #%s | STOP LOSS | Price: %.3f | Loss: %.3f",
+                        trade_id, current_odds, current_gain
+                    )
+                    if not pos.get("is_exiting"):
+                        pos["is_exiting"] = True
+                        asyncio.create_task(self._background_exit(trade_id, pos, current_odds, "sniper1_sl"))
+                    return
+
+                # Time Stop: 2 minutes from entry
+                if secs_held >= time_stop:
+                    pos_logger.info(
+                        "[EXIT] [Bot SNIPER][S1] Trade #%s | TIME STOP (%.0fs held) | Price: %.3f | PnL: %.3f",
+                        trade_id, secs_held, current_odds, current_gain
+                    )
+                    if not pos.get("is_exiting"):
+                        pos["is_exiting"] = True
+                        asyncio.create_task(self._background_exit(trade_id, pos, current_odds, "sniper1_time_exit"))
+                    return
+
+            elif sniper_mode == 2.0:
+                # ── Sniper 2 exits ────────────────────────────────────────────
+                tp_delta = getattr(config, "SNIPER_2_TP_DELTA", 0.10)
+                sl_delta = getattr(config, "SNIPER_2_SL_DELTA", 0.50)
+
+                # Take Profit: +10c
+                if current_gain >= tp_delta:
+                    pos_logger.info(
+                        "[EXIT] [Bot SNIPER][S2] Trade #%s | TAKE PROFIT | Price: %.3f | Gain: +%.3f",
+                        trade_id, current_odds, current_gain
+                    )
+                    if not pos.get("is_exiting"):
+                        pos["is_exiting"] = True
+                        asyncio.create_task(self._background_exit(trade_id, pos, current_odds, "sniper2_tp"))
+                    return
+
+                # Stop Loss: -50c
+                if current_gain <= -sl_delta:
+                    pos_logger.info(
+                        "[EXIT] [Bot SNIPER][S2] Trade #%s | STOP LOSS | Price: %.3f | Loss: %.3f",
+                        trade_id, current_odds, current_gain
+                    )
+                    if not pos.get("is_exiting"):
+                        pos["is_exiting"] = True
+                        asyncio.create_task(self._background_exit(trade_id, pos, current_odds, "sniper2_sl"))
+                    return
+
+            # Sniper: no further evaluation — hold until market resolves or exit above triggers
+            return
+        # ── END SNIPER BLOCK ──────────────────────────────────────────────────
+
         # 0. Hard Take Profit (Immediate Smash Exit)
         hard_tp_delta = getattr(config, "HARD_TP_DELTA", 0.0)
         if hard_tp_delta > 0 and current_gain >= hard_tp_delta:

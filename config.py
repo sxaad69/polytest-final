@@ -144,14 +144,23 @@ BOT_G_MIN_SECS_REMAINING      = 60      # Don't enter if < 60s left in window
 BOT_G_MAX_CONCURRENT_TRADES   = 8       # Controlled aggression (was 999 in volcano mode)
 BOT_G_MIN_STAKE               = 1.0     # Minimum stake in USDC
 
-# ── Bot Sniper thresholds ──────────────────────────────────────────────────────
+# ── Bot Sniper — Dual-Window Strategy ─────────────────────────────────────────
 BOT_SNIPER_STRIKE_ASSETS = ["btc", "eth", "sol", "bnb", "xrp", "doge"]
-SNIPER_MIN_ODDS          = 0.501
-SNIPER_MAX_ODDS          = 0.99
-SNIPER_DIRECTION         = "both"    # Take whichever side is dominating
-SNIPER_LATE_ENTRY_START_MIN = 3.75   # Start scanning at 3:45 mins
-SNIPER_LATE_ENTRY_END_MIN   = 6.0    # Stop scanning at 6.0 mins (effectively never)
-SNIPER_STAKE             = 5.0       # Standardized stake
+SNIPER_STAKE             = 5.0       # Standardized stake (both snipers)
+
+# Sniper 1 — Early Momentum (15s–60s into market)
+SNIPER_1_START_SECS     = 15         # Enter after 15s elapsed
+SNIPER_1_END_SECS       = 60         # Stop entering at 60s elapsed
+SNIPER_1_MIN_DOMINANCE  = 0.525      # One side must be >= 52.5c (5c above midpoint)
+SNIPER_1_TP_DELTA       = 0.10       # +10c Take Profit
+SNIPER_1_SL_DELTA       = 99.0       # SL DISABLED — let trade ride to TP or time exit
+SNIPER_1_TIME_STOP_SECS = 120        # Force exit if still holding after 2 minutes
+
+# Sniper 2 — Late Entry (3:45 into market, i.e. >= 225s elapsed)
+SNIPER_2_START_SECS     = 225        # Enter after 3:45 elapsed
+SNIPER_2_MIN_DOMINANCE  = 0.525      # Same dominance threshold
+SNIPER_2_TP_DELTA       = 0.10       # +10c Take Profit
+SNIPER_2_SL_DELTA       = 99.0       # SL DISABLED — let trade ride to TP or binary resolution
 
 # ── Global Exclude patterns ────────────────────────────────────────────────────
 # Noise Purge: These keywords will trigger a clinical skip for any bot scanning markets.

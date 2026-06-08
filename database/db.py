@@ -65,7 +65,10 @@ CREATE TABLE IF NOT EXISTS trades (
     asset               TEXT,   -- e.g. BTC, ETH, SOL — for per-asset performance analysis
     slug                TEXT,   -- e.g. btc-updown-5m-1774134000 — exact market targeted
     is_settled          INTEGER DEFAULT 0,
-    true_pnl            REAL
+    true_pnl            REAL,
+    binance_price       REAL,
+    chainlink_price_entry REAL,
+    chainlink_lag       REAL
 );
 
 CREATE TABLE IF NOT EXISTS settlements (
@@ -165,7 +168,10 @@ class Database:
                 ("asset", "TEXT"),
                 ("slug", "TEXT"),
                 ("is_settled", "INTEGER DEFAULT 0"),
-                ("true_pnl", "REAL")
+                ("true_pnl", "REAL"),
+                ("binance_price", "REAL"),
+                ("chainlink_price_entry", "REAL"),
+                ("chainlink_lag", "REAL")
             ]:
                 if col[0] not in existing_cols:
                     conn.execute(f"ALTER TABLE trades ADD COLUMN {col[0]} {col[1]}")
@@ -252,6 +258,7 @@ class Database:
                     window_start, window_end, direction,
                     entry_odds, peak_odds, stake_usdc,
                     taker_fee_bps, chainlink_open,
+                    binance_price, chainlink_price_entry, chainlink_lag,
                     market_condition_id, outcome_index,
                     clob_order_id, token_id, asset, slug
                 ) VALUES (
@@ -259,11 +266,16 @@ class Database:
                     :window_start, :window_end, :direction,
                     :entry_odds, :entry_odds, :stake_usdc,
                     :taker_fee_bps, :chainlink_open,
+                    :binance_price, :chainlink_price_entry, :chainlink_lag,
                     :market_condition_id, :outcome_index,
                     :clob_order_id, :token_id, :asset, :slug
                 )
             """, {**t, "bot": self.bot_id,
                   "taker_fee_bps": t.get("taker_fee_bps", 0),
+                  "chainlink_open": t.get("chainlink_open"),
+                  "binance_price": t.get("binance_price"),
+                  "chainlink_price_entry": t.get("chainlink_price_entry"),
+                  "chainlink_lag": t.get("chainlink_lag"),
                   "market_condition_id": t.get("market_condition_id"),
                   "outcome_index": t.get("outcome_index"),
                   "clob_order_id": t.get("clob_order_id"),
