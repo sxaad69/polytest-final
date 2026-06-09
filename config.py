@@ -152,14 +152,14 @@ SNIPER_STAKE             = 5.0       # Standardized stake (both snipers)
 SNIPER_1_START_SECS     = 15         # Enter after 15s elapsed
 SNIPER_1_END_SECS       = 60         # Stop entering at 60s elapsed
 SNIPER_1_MIN_DOMINANCE  = 0.525      # One side must be >= 52.5c (5c above midpoint)
-SNIPER_1_TP_DELTA       = 0.10       # +10c Take Profit
+SNIPER_1_TP_DELTA       = 0.15       # +15c Take Profit
 SNIPER_1_SL_DELTA       = 99.0       # SL DISABLED — let trade ride to TP or time exit
-SNIPER_1_TIME_STOP_SECS = 120        # Force exit if still holding after 2 minutes
+SNIPER_1_TIME_STOP_SECS = 180        # Force exit if still holding after 3 minutes
 
 # Sniper 2 — Late Entry (3:45 into market, i.e. >= 225s elapsed)
 SNIPER_2_START_SECS     = 225        # Enter after 3:45 elapsed
 SNIPER_2_MIN_DOMINANCE  = 0.525      # Same dominance threshold
-SNIPER_2_TP_DELTA       = 0.10       # +10c Take Profit
+SNIPER_2_TP_DELTA       = 99.0       # Disabled — let trade ride to binary resolution
 SNIPER_2_SL_DELTA       = 99.0       # SL DISABLED — let trade ride to TP or binary resolution
 
 # ── Global Exclude patterns ────────────────────────────────────────────────────
