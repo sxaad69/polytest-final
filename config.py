@@ -145,7 +145,7 @@ BOT_G_MAX_CONCURRENT_TRADES   = 8       # Controlled aggression (was 999 in volc
 BOT_G_MIN_STAKE               = 1.0     # Minimum stake in USDC
 
 # ── Bot Sniper — Dual-Window Strategy ─────────────────────────────────────────
-BOT_SNIPER_STRIKE_ASSETS = ["btc", "eth", "sol", "bnb", "xrp", "doge"]
+BOT_SNIPER_STRIKE_ASSETS = ["btc", "eth"]
 SNIPER_STAKE             = 5.0       # Standardized stake (both snipers)
 
 # Sniper 1 — Early Momentum (15s–60s into market)
@@ -157,7 +157,7 @@ SNIPER_1_SL_DELTA       = 99.0       # SL DISABLED — let trade ride to TP or t
 SNIPER_1_TIME_STOP_SECS = 180        # Force exit if still holding after 3 minutes
 
 # Sniper 2 — Late Entry (3:45 into market, i.e. >= 225s elapsed)
-SNIPER_2_START_SECS     = 225        # Enter after 3:45 elapsed
+SNIPER_2_START_SECS     = 9999       # Disabled (was 225)
 SNIPER_2_MIN_DOMINANCE  = 0.525      # Same dominance threshold
 SNIPER_2_TP_DELTA       = 99.0       # Disabled — let trade ride to binary resolution
 SNIPER_2_SL_DELTA       = 99.0       # SL DISABLED — let trade ride to TP or binary resolution
