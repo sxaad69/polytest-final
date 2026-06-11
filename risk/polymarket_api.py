@@ -27,12 +27,11 @@ class PolymarketAPIClient:
         self._client = None  # Lazy init py_clob_client
     
     def _get_client(self):
-        """Lazy initialize py_clob_client for Level 2 authenticated calls."""
+        """Lazy initialize py_clob_client_v2 for Level 2 authenticated calls."""
         if self._client is None:
-            from py_clob_client.client import ClobClient
-            from py_clob_client.clob_types import ApiCreds
-            from py_clob_client.constants import POLYGON
-            
+            from py_clob_client_v2.client import ClobClient
+            from py_clob_client_v2.clob_types import ApiCreds
+
             creds = ApiCreds(
                 api_key=self.api_key,
                 api_secret=self.api_secret,
@@ -41,10 +40,10 @@ class PolymarketAPIClient:
             self._client = ClobClient(
                 host=self.clob_base,
                 key=self.private_key,
-                chain_id=POLYGON,
+                chain_id=137,
                 creds=creds,
                 funder=self.funder_address,
-                signature_type=1,  # EOA
+                signature_type=3,  # POLY_1271 — deposit wallet (pUSD)
             )
         return self._client
     
@@ -183,7 +182,7 @@ class PolymarketAPIClient:
         """
         try:
             client = self._get_client()
-            from py_clob_client.clob_types import TradeParams
+            from py_clob_client_v2.clob_types import TradeParams
             
             # Use native API filtering if 'since' timestamp provided
             if since:
@@ -213,7 +212,7 @@ class PolymarketAPIClient:
         """Fetch USDC balance from CLOB via py_clob_client."""
         try:
             client = self._get_client()
-            from py_clob_client.clob_types import BalanceAllowanceParams
+            from py_clob_client_v2.clob_types import BalanceAllowanceParams
             
             params = BalanceAllowanceParams(asset_type="COLLATERAL")
             result = client.get_balance_allowance(params)
@@ -231,7 +230,7 @@ class PolymarketAPIClient:
         """Fetch specific ERC1155 token share balance from CLOB via py_clob_client."""
         try:
             client = self._get_client()
-            from py_clob_client.clob_types import BalanceAllowanceParams
+            from py_clob_client_v2.clob_types import BalanceAllowanceParams
             
             params = BalanceAllowanceParams(asset_type="CONDITIONAL", token_id=token_id)
             result = client.get_balance_allowance(params)
@@ -476,9 +475,8 @@ class PolymarketAPIClient:
         
         # Try to close each position using py-clob-client
         try:
-            from py_clob_client.client import ClobClient
-            from py_clob_client.clob_types import ApiCreds, OrderArgs, OrderType
-            from py_clob_client.constants import POLYGON
+            from py_clob_client_v2.client import ClobClient
+            from py_clob_client_v2.clob_types import ApiCreds, OrderArgsV2 as OrderArgs, OrderType
             
             creds = ApiCreds(
                 api_key        = self.api_key,
