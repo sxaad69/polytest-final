@@ -47,6 +47,7 @@ BOT_E_ENABLED   = False
 BOT_F_ENABLED   = False
 BOT_G_ENABLED = False        # Crypto (Universal)
 BOT_SNIPER_ENABLED = True   # Minute 1 Sniper
+BOT_SNIPER_PAPER_TRADING = False # Sniper Live Trading
 
 # ── Live conflict rule ─────────────────────────────────────────────────────────
 LIVE_CONFLICT_RULE = "higher_confidence"

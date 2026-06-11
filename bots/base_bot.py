@@ -47,8 +47,9 @@ class BaseBot:
             "E": config.BOT_E_PAPER_TRADING,
             "F": config.BOT_F_PAPER_TRADING,
             "G": config.BOT_G_PAPER_TRADING,
+            "SNIPER": getattr(config, "BOT_SNIPER_PAPER_TRADING", config.PAPER_TRADING),
         }
-        paper = paper_map.get(self.BOT_ID, True)
+        paper = paper_map.get(self.BOT_ID, config.PAPER_TRADING)
         self.paper_trading = paper
         
         # For live trading: Fetch actual wallet balance from Polymarket API
