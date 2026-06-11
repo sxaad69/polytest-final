@@ -26,7 +26,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ── Mode ───────────────────────────────────────────────────────────────────────
-PAPER_TRADING = True       # global flag — True keeps everything on paper
+PAPER_TRADING = False      # global flag — False = LIVE trading
 
 # ── Per-bot paper/live mode ────────────────────────────────────────────────────
 # Allows running Bot A live while Bot B stays on paper simultaneously
@@ -36,7 +36,7 @@ BOT_C_PAPER_TRADING = True
 BOT_D_PAPER_TRADING = True
 BOT_E_PAPER_TRADING = True
 BOT_F_PAPER_TRADING = True
-BOT_G_PAPER_TRADING = True  # Bot G LIVE
+BOT_G_PAPER_TRADING = False  # Bot G LIVE
 
 # ── Bot enable flags ───────────────────────────────────────────────────────────
 BOT_A_ENABLED = False        # Chainlink lag (Depreciated/Obsolete)
