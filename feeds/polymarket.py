@@ -884,11 +884,10 @@ class PolymarketFeed:
                         bot_id, direction.upper(), size, price)
             return {"status": "filled", "filled_price": price, "paper": True}
 
-        # ── Live order via py-clob-client ──────────────────────────────────
+        # ── Live order via py-clob-client-v2 (POLY_1271 / deposit wallet) ─────
         try:
-            from py_clob_client.client import ClobClient
-            from py_clob_client.clob_types import ApiCreds, OrderArgs, OrderType
-            from py_clob_client.constants import POLYGON
+            from py_clob_client_v2.client import ClobClient
+            from py_clob_client_v2.clob_types import ApiCreds, OrderArgsV2, OrderType
             from config import (
                 POLYMARKET_PRIVATE_KEY, POLYMARKET_FUNDER_ADDRESS,
                 POLYMARKET_API_KEY, POLYMARKET_API_SECRET, POLYMARKET_PASSPHRASE,
@@ -903,68 +902,121 @@ class PolymarketFeed:
                 self._clob_client = ClobClient(
                     host           = POLYMARKET_CLOB_URL,
                     key            = POLYMARKET_PRIVATE_KEY,
-                    chain_id       = POLYGON,
+                    chain_id       = 137,
                     creds          = creds,
                     funder         = POLYMARKET_FUNDER_ADDRESS,
-                    signature_type = 1,   # EOA — required for Magic/Gmail wallet
+                    signature_type = 3,   # POLY_1271 — deposit wallet (pUSD)
                 )
             client = self._clob_client
+
+            import math
 
             # Round price to valid tick (0.01 increments)
             rounded_price = round(round(price / 0.01) * 0.01, 4)
 
-            import math
-
             if direction == "sell":
-                # SELL: GTC limit order with floored shares to never oversell
-                shares = math.floor(size * 100_000) / 100_000
-                order_args = OrderArgs(
-                    token_id = token_id,
-                    price    = rounded_price,
-                    size     = shares,
-                    side     = "SELL",
-                )
-                signed_order = client.create_order(order_args)
-                resp = client.post_order(signed_order, OrderType.GTC)
+                # ── SELL: FOK with dynamic slippage buffer ─────────────────
+                # size here = shares (passed from trader.py which uses true balance)
+                shares = math.floor(size * 1_000_000) / 1_000_000  # floor to 6dp
+
+                # Dead-zone guard: if price < 2c there is no bid liquidity
+                if rounded_price < 0.02:
+                    logger.warning(
+                        "[LIVE Bot%s] SELL skipped — price %.3f in dead zone (no bid liquidity)",
+                        bot_id, rounded_price
+                    )
+                    return {"status": "failed", "reason": "dead_zone_no_liquidity"}
+
+                # Apply slippage buffer: -3c on first attempt, widen on retries
+                sell_resp = None
+                for attempt, slip in enumerate([0.03, 0.05, 0.07, 0.10]):
+                    sell_price = max(0.01, round(round((rounded_price - slip) / 0.01) * 0.01, 4))
+                    sell_args  = OrderArgsV2(
+                        token_id = token_id,
+                        price    = sell_price,
+                        size     = shares,
+                        side     = "SELL",
+                    )
+                    try:
+                        signed_sell = client.create_order(sell_args)
+                        sell_resp   = client.post_order(signed_sell, OrderType.FOK)
+                        if sell_resp and sell_resp.get("success"):
+                            break  # Filled — stop retrying
+                        logger.warning(
+                            "[LIVE Bot%s] SELL attempt %d rejected (slip=%.2f): %s",
+                            bot_id, attempt + 1, slip, sell_resp
+                        )
+                    except Exception as fok_err:
+                        logger.warning(
+                            "[LIVE Bot%s] SELL FOK killed attempt %d (slip=%.2f): %s",
+                            bot_id, attempt + 1, slip, fok_err
+                        )
+                resp = sell_resp
+
             else:
-                # BUY: FOK market order using create_market_order (correct Polymarket API)
-                # amount = USDC to spend (maker). Builder handles shares/precision internally.
-                from py_clob_client.clob_types import MarketOrderArgs
-                usdc_amount = round(size, 2)
-                market_args = MarketOrderArgs(
-                    token_id = token_id,
-                    amount   = usdc_amount,
-                    side     = "BUY",
-                    price    = rounded_price,
-                )
-                signed_order = client.create_market_order(market_args)
-                resp = client.post_order(signed_order, OrderType.FOK)
+                # ── BUY: FOK limit order with slippage buffer ──────────────
+                # Polymarket enforces min $1 per order.
+                # Calculate shares so that shares * buy_price >= $1.
+                MIN_ORDER_USDC = 1.00
+                buy_price_slip = min(0.99, round(round((rounded_price + 0.08) / 0.01) * 0.01, 4))
+                min_shares_for_dollar = math.ceil(MIN_ORDER_USDC / buy_price_slip * 10) / 10
+                # size passed in is USDC stake — convert to shares
+                shares_from_stake = round(size / rounded_price, 6)
+                shares = max(min_shares_for_dollar, shares_from_stake)
+
+                buy_resp = None
+                for attempt, slip in enumerate([0.08, 0.15]):
+                    buy_price = min(0.99, round(round((rounded_price + slip) / 0.01) * 0.01, 4))
+                    buy_args  = OrderArgsV2(
+                        token_id = token_id,
+                        price    = buy_price,
+                        size     = shares,
+                        side     = "BUY",
+                    )
+                    try:
+                        signed_buy = client.create_order(buy_args)
+                        buy_resp   = client.post_order(signed_buy, OrderType.FOK)
+                        if buy_resp and buy_resp.get("success"):
+                            break
+                        logger.warning(
+                            "[LIVE Bot%s] BUY attempt %d rejected (slip=%.2f): %s",
+                            bot_id, attempt + 1, slip, buy_resp
+                        )
+                    except Exception as fok_err:
+                        logger.warning(
+                            "[LIVE Bot%s] BUY FOK killed attempt %d (slip=%.2f): %s",
+                            bot_id, attempt + 1, slip, fok_err
+                        )
+                resp = buy_resp
 
             if resp and resp.get("success"):
-                filled_price = float(resp.get("price", rounded_price))
-                filled_size  = float(resp.get("size", size))
+                # Use makingAmount (USDC spent) / takingAmount (shares received)
+                taking = float(resp.get("takingAmount", size))
+                making = float(resp.get("makingAmount", size * rounded_price))
+                filled_price = round(making / taking, 6) if taking > 0 else rounded_price
                 logger.info(
-                    "[LIVE Bot%s] %s FILLED | size=%.2f price=%.3f order_id=%s",
-                    bot_id, direction.upper(), filled_size, filled_price,
+                    "[LIVE Bot%s] %s FILLED | shares=%.4f price=%.4f order_id=%s",
+                    bot_id, direction.upper(), taking, filled_price,
                     resp.get("orderID", "?")
                 )
                 return {
                     "status":       "filled",
                     "filled_price": filled_price,
-                    "filled_size":  filled_size,
+                    "filled_size":  taking,
                     "order_id":     resp.get("orderID"),
                     "paper":        False,
                 }
             else:
-                logger.error("[LIVE Bot%s] Order rejected: %s", bot_id, resp)
+                logger.error("[LIVE Bot%s] Order rejected after all attempts: %s", bot_id, resp)
                 return {"status": "failed", "reason": str(resp)}
 
         except ImportError:
-            logger.error("py-clob-client not installed — pip install py-clob-client")
+            logger.error("py-clob-client-v2 not installed — pip install py-clob-client-v2")
             return {"status": "failed", "reason": "missing_dependency"}
         except Exception as e:
             logger.error("[LIVE Bot%s] Order error: %s", bot_id, e)
             return {"status": "failed", "reason": str(e)}
+
 
     # ── Timing ─────────────────────────────────────────────────────────────────
 
