@@ -94,7 +94,7 @@ class BotG(BaseBot):
                 if not hasattr(self, "_active_ws_tokens"):
                     self._active_ws_tokens = set()
                 current_active_tokens = set()
-                assets = getattr(config, "BOT_G_STRIKE_ASSETS", [])
+                assets = getattr(self, "strike_assets", getattr(config, "BOT_G_STRIKE_ASSETS", []))
                 tfs    = getattr(config, "BOT_G_TIMEFRAMES", {})
                 for asset in assets:
                     for tf_name, tf_secs in tfs.items():
