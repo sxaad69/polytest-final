@@ -26,7 +26,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ── Mode ───────────────────────────────────────────────────────────────────────
-PAPER_TRADING = False      # global flag — False = LIVE trading
+PAPER_TRADING = True      # global flag — False = LIVE trading
 
 # ── Per-bot paper/live mode ────────────────────────────────────────────────────
 # Allows running Bot A live while Bot B stays on paper simultaneously
@@ -36,7 +36,7 @@ BOT_C_PAPER_TRADING = True
 BOT_D_PAPER_TRADING = True
 BOT_E_PAPER_TRADING = True
 BOT_F_PAPER_TRADING = True
-BOT_G_PAPER_TRADING = False  # Bot G LIVE
+BOT_G_PAPER_TRADING = True  # Bot G LIVE
 
 # ── Bot enable flags ───────────────────────────────────────────────────────────
 BOT_A_ENABLED = False        # Chainlink lag (Depreciated/Obsolete)
@@ -47,7 +47,7 @@ BOT_E_ENABLED   = False
 BOT_F_ENABLED   = False
 BOT_G_ENABLED = False        # Crypto (Universal)
 BOT_SNIPER_ENABLED = True   # Minute 1 Sniper
-BOT_SNIPER_PAPER_TRADING = False # Sniper Live Trading
+BOT_SNIPER_PAPER_TRADING = True # Sniper Live Trading
 
 # ── Live conflict rule ─────────────────────────────────────────────────────────
 LIVE_CONFLICT_RULE = "higher_confidence"
@@ -129,7 +129,8 @@ BOT_F_MARKET_PATTERNS    = [
 # ── Bot G thresholds (Crypto) ──────────────────────────────────────────────────
 BOT_G_STRIKE_ASSETS = ["btc", "eth", "sol", "bnb", "xrp", "doge"]
 BOT_G_TIMEFRAMES = {
-    "5m": 300,   # 5m ONLY — data shows 0% win rate on 15m/4h
+    "5m":  300,   # 5-minute markets
+    "15m": 900,   # 15-minute markets (Sniper concurrent backtest)
 }
 # Signal momentum band (from 811-trade simulation, March 2026)
 BOT_G_MIN_CONFIDENCE          = 0.05   # Full-width data capture for analysis
@@ -162,6 +163,17 @@ SNIPER_2_START_SECS     = 9999       # Disabled (was 225)
 SNIPER_2_MIN_DOMINANCE  = 0.525      # Same dominance threshold
 SNIPER_2_TP_DELTA       = 99.0       # Disabled — let trade ride to binary resolution
 SNIPER_2_SL_DELTA       = 99.0       # SL DISABLED — let trade ride to TP or binary resolution
+
+# ── Sniper 15m — Scaled for 15-minute markets ──────────────────────────────────
+# 15m markets have 3x the duration of 5m, so entry/exit windows scale proportionally.
+# Entry window widened to give dominance more time to establish (15m trends develop slower).
+# Time stop at 600s (10 min) leaves 5 min for resolution — same 1/3 ratio as 5m's 180s/300s.
+SNIPER_15M_1_START_SECS     = 30     # 2x the 5m entry start (dominance needs more time)
+SNIPER_15M_1_END_SECS       = 180    # 3x the 5m entry end (wider window for slower trends)
+SNIPER_15M_1_MIN_DOMINANCE  = 0.525  # Same dominance threshold as 5m
+SNIPER_15M_1_TP_DELTA       = 0.15   # Same +15c Take Profit target
+SNIPER_15M_1_SL_DELTA       = 99.0   # SL DISABLED — let trade ride to TP or time exit
+SNIPER_15M_1_TIME_STOP_SECS = 600    # Force exit after 10 min (leaves 5 min for resolution)
 
 # ── Global Exclude patterns ────────────────────────────────────────────────────
 # Noise Purge: These keywords will trigger a clinical skip for any bot scanning markets.

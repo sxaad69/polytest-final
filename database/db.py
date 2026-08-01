@@ -68,7 +68,8 @@ CREATE TABLE IF NOT EXISTS trades (
     true_pnl            REAL,
     binance_price       REAL,
     chainlink_price_entry REAL,
-    chainlink_lag       REAL
+    chainlink_lag       REAL,
+    timeframe           TEXT DEFAULT '5m'  -- 5m or 15m market timeframe
 );
 
 CREATE TABLE IF NOT EXISTS settlements (
@@ -171,7 +172,8 @@ class Database:
                 ("true_pnl", "REAL"),
                 ("binance_price", "REAL"),
                 ("chainlink_price_entry", "REAL"),
-                ("chainlink_lag", "REAL")
+                ("chainlink_lag", "REAL"),
+                ("timeframe", "TEXT DEFAULT '5m'")
             ]:
                 if col[0] not in existing_cols:
                     conn.execute(f"ALTER TABLE trades ADD COLUMN {col[0]} {col[1]}")
@@ -260,7 +262,7 @@ class Database:
                     taker_fee_bps, chainlink_open,
                     binance_price, chainlink_price_entry, chainlink_lag,
                     market_condition_id, outcome_index,
-                    clob_order_id, token_id, asset, slug
+                    clob_order_id, token_id, asset, slug, timeframe
                 ) VALUES (
                     :signal_id, :bot, :ts_entry, :market_id,
                     :window_start, :window_end, :direction,
@@ -268,7 +270,7 @@ class Database:
                     :taker_fee_bps, :chainlink_open,
                     :binance_price, :chainlink_price_entry, :chainlink_lag,
                     :market_condition_id, :outcome_index,
-                    :clob_order_id, :token_id, :asset, :slug
+                    :clob_order_id, :token_id, :asset, :slug, :timeframe
                 )
             """, {**t, "bot": self.bot_id,
                   "taker_fee_bps": t.get("taker_fee_bps", 0),
@@ -281,7 +283,8 @@ class Database:
                   "clob_order_id": t.get("clob_order_id"),
                   "token_id": t.get("token_id"),
                   "asset": t.get("asset"),
-                  "slug": t.get("slug")})
+                  "slug": t.get("slug"),
+                  "timeframe": t.get("timeframe", "5m")})
             return cur.lastrowid
 
     def log_exit(self, trade_id: int, e: dict) -> tuple:

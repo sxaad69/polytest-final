@@ -58,6 +58,13 @@ class BotSniper(BotG):
         slug      = m.get("slug", "")
         market_id = m.get("condition_id")
 
+        # ── Detect timeframe from slug ────────────────────────────────────────
+        # Slug format: {asset}-updown-{timeframe}-{ts} (e.g. btc-updown-5m-123456)
+        timeframe = "5m"   # default
+        if "-15m-" in slug:
+            timeframe = "15m"
+        tf_duration = 300 if timeframe == "5m" else 900
+
         # ── Parse window timestamps ───────────────────────────────────────────
         win_start = m.get("win_start")
         win_end   = m.get("win_end")
@@ -66,7 +73,7 @@ class BotSniper(BotG):
             if len(parts) == 2 and parts[1].isdigit():
                 ts        = int(parts[1])
                 win_start = float(ts)
-                win_end   = float(ts + 300)
+                win_end   = float(ts + tf_duration)
             else:
                 return
 
@@ -92,8 +99,12 @@ class BotSniper(BotG):
 
         # ── Route to the appropriate sniper window ────────────────────────────
         import config as cfg
-        s1_start = getattr(cfg, "SNIPER_1_START_SECS", 15)
-        s1_end   = getattr(cfg, "SNIPER_1_END_SECS", 60)
+        if timeframe == "15m":
+            s1_start = getattr(cfg, "SNIPER_15M_1_START_SECS", 30)
+            s1_end   = getattr(cfg, "SNIPER_15M_1_END_SECS", 180)
+        else:
+            s1_start = getattr(cfg, "SNIPER_1_START_SECS", 15)
+            s1_end   = getattr(cfg, "SNIPER_1_END_SECS", 60)
         s2_start = getattr(cfg, "SNIPER_2_START_SECS", 225)
 
         in_s1_window = s1_start <= elapsed_secs <= s1_end
@@ -112,7 +123,7 @@ class BotSniper(BotG):
                 trade_id = await self._fire_entry(
                     tid, m, slug, market_id, win_start, win_end,
                     direction, trade_token_id, trade_price,
-                    confidence=1.0, sniper_label="S1"
+                    confidence=1.0, sniper_label="S1", timeframe=timeframe
                 )
                 if trade_id:
                     self._sniper1_traded[market_id] = win_end
@@ -128,7 +139,7 @@ class BotSniper(BotG):
                 trade_id = await self._fire_entry(
                     tid, m, slug, market_id, win_start, win_end,
                     direction, trade_token_id, trade_price,
-                    confidence=2.0, sniper_label="S2"
+                    confidence=2.0, sniper_label="S2", timeframe=timeframe
                 )
                 if trade_id:
                     self._sniper2_traded[market_id] = win_end
@@ -154,7 +165,7 @@ class BotSniper(BotG):
     async def _fire_entry(
         self, tid, m, slug, market_id, win_start, win_end,
         direction, trade_token_id, trade_odds,
-        confidence, sniper_label
+        confidence, sniper_label, timeframe="5m"
     ):
         """Execute the buy order via the proven executor pipeline."""
         stake = config.SNIPER_STAKE
@@ -197,6 +208,7 @@ class BotSniper(BotG):
             binance_price=bn_price,
             chainlink_price_entry=cl_price,
             chainlink_lag=cl_lag,
+            timeframe=timeframe,
         )
 
         if not trade_id:

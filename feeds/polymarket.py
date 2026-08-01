@@ -917,7 +917,7 @@ class PolymarketFeed:
             if direction == "sell":
                 # ── SELL: FOK with dynamic slippage buffer ─────────────────
                 # size here = shares (passed from trader.py which uses true balance)
-                shares = math.floor(size * 1_000_000) / 1_000_000  # floor to 6dp
+                shares = math.floor(size)  # integer shares → maker USDC always ≤ 2dp
 
                 # Dead-zone guard: if price < 2c there is no bid liquidity
                 if rounded_price < 0.02:
@@ -960,8 +960,9 @@ class PolymarketFeed:
                 MIN_ORDER_USDC = 1.00
                 buy_price_slip = min(0.99, round(round((rounded_price + 0.08) / 0.01) * 0.01, 4))
                 min_shares_for_dollar = math.ceil(MIN_ORDER_USDC / buy_price_slip * 10) / 10
-                # size passed in is USDC stake — convert to shares
-                shares_from_stake = round(size / rounded_price, 6)
+                # size passed in is USDC stake — convert to integer shares
+                # math.floor ensures integer × 2dp_price = always ≤ 2dp USDC (maker limit)
+                shares_from_stake = math.floor(size / rounded_price)
                 shares = max(min_shares_for_dollar, shares_from_stake)
 
                 buy_resp = None

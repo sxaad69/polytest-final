@@ -30,10 +30,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 CONCURRENCY = 30   # concurrent threads — safe for Gamma API
 
 GAMMA_API = "https://gamma-api.polymarket.com"
-DB_PATH = "data/bot_sniper_paper.db"
+DB_PATH = "data/bot_sniper_paper_backup.db"
 CACHE_FILE = "logs/slug_truth_cache.txt"
 RATE_LIMIT_SEC = 0.5  # 2 requests/sec — safe for Gamma API
-SINCE_DATE = "2026-06-05 20:15:00"  # Only fetch/update trades from the 2-day run
+SINCE_DATE = "2026-06-08 00:00:00"  # Only fetch/update trades from the recent run
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 

@@ -2,8 +2,8 @@
 Comparison Analytics
 Side-by-side report for Bot A vs Bot B.
 Run any time: python -m analytics.comparison
+For Sniper 5m vs 15m comparison: python -m analytics.comparison sniper
 """
-
 import sqlite3
 from datetime import date
 from config import BOT_A_DB_PATH, BOT_B_DB_PATH, BOT_A_BANKROLL, BOT_B_BANKROLL
@@ -165,5 +165,96 @@ def _verdict(a: dict, b: dict):
         print("\n  RECOMMENDATION: Neither ready. Continue paper testing.")
 
 
+def print_sniper_timeframe_comparison():
+    """Prints a 5m vs 15m comparison table for the Sniper bot."""
+    from config import BOT_SNIPER_DB_PATH
+
+    today = date.today().isoformat()
+
+    def tf_stats(timeframe: str):
+        return _one(BOT_SNIPER_DB_PATH, """
+            SELECT COUNT(*) AS total,
+                SUM(CASE WHEN outcome='win'  THEN 1 END) AS wins,
+                SUM(CASE WHEN outcome='loss' THEN 1 END) AS losses,
+                ROUND(SUM(pnl_usdc),4) AS pnl,
+                ROUND(AVG(CASE WHEN outcome='win'
+                    THEN 1.0 ELSE 0.0 END)*100,2) AS win_rate,
+                ROUND(AVG(pnl_usdc),6) AS expectancy,
+                SUM(CASE WHEN exit_reason='sniper1_tp'        THEN 1 END) AS tp,
+                SUM(CASE WHEN exit_reason='sniper1_time_exit' THEN 1 END) AS time_exits,
+                SUM(CASE WHEN exit_reason='sniper1_sl'        THEN 1 END) AS sl
+            FROM trades
+            WHERE DATE(ts_entry)=? AND resolved=1 AND timeframe=?
+        """, (today, timeframe))
+
+    data = {
+        "5m":  tf_stats("5m"),
+        "15m": tf_stats("15m"),
+    }
+
+    def v(d, k, fmt="{}"):
+        val = d.get(k)
+        val = 0 if val is None else val
+        try: return fmt.format(val)
+        except: return str(val)
+
+    print("\n" + "═" * 60)
+    print(f"  Sniper Timeframe Comparison — {today}")
+    print("═" * 60)
+    print(f"  {'Metric':<25}{'5m':>15}{'15m':>15}")
+    print("  " + "─" * 55)
+
+    metrics = [
+        ("Trades",       lambda d: v(d, "total")),
+        ("Wins",         lambda d: v(d, "wins")),
+        ("Losses",       lambda d: v(d, "losses")),
+        ("Win rate",     lambda d: v(d, "win_rate", "{}%")),
+        ("Total PnL",    lambda d: v(d, "pnl", "{:+}")),
+        ("Expectancy",   lambda d: v(d, "expectancy", "{:+}")),
+        ("TP exits",     lambda d: v(d, "tp")),
+        ("Time exits",   lambda d: v(d, "time_exits")),
+        ("SL exits",     lambda d: v(d, "sl")),
+    ]
+
+    for label, fetcher in metrics:
+        row = f"  {label:<25}"
+        row += f"{fetcher(data['5m']):>15}"
+        row += f"{fetcher(data['15m']):>15}"
+        print(row)
+
+    print("  " + "─" * 55)
+
+    # Verdict
+    t5  = data["5m"].get("total") or 0
+    t15 = data["15m"].get("total") or 0
+    wr5 = float(data["5m"].get("win_rate") or 0)
+    wr15 = float(data["15m"].get("win_rate") or 0)
+    exp5 = float(data["5m"].get("expectancy") or 0)
+    exp15 = float(data["15m"].get("expectancy") or 0)
+
+    print("\n  VERDICT")
+    if t5 < 20 and t15 < 20:
+        print("  ⏳ Insufficient data — need 20+ trades per timeframe for a verdict.")
+    elif t5 < 20:
+        print("  ⏳ 5m needs more trades (20+). 15m is collecting data.")
+    elif t15 < 20:
+        print("  ⏳ 15m needs more trades (20+). 5m is collecting data.")
+    else:
+        if exp5 > 0 and exp15 > 0:
+            winner = "5m" if exp5 >= exp15 else "15m"
+            print(f"  ✓ Both timeframes profitable. Winner: {winner} (higher expectancy)")
+        elif exp5 > 0:
+            print("  ✓ 5m profitable, 15m not yet. Consider 5m for live.")
+        elif exp15 > 0:
+            print("  ✓ 15m profitable, 5m not yet. Consider 15m for live.")
+        else:
+            print("  ✗ Neither timeframe profitable yet. Continue paper testing.")
+    print("═" * 60 + "\n")
+
+
 if __name__ == "__main__":
-    print_comparison()
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "sniper":
+        print_sniper_timeframe_comparison()
+    else:
+        print_comparison()

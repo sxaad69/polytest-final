@@ -12,6 +12,7 @@ Changes from data analysis:
 import asyncio
 import logging
 import logging.handlers
+import math
 import os
 import time
 from datetime import datetime
@@ -110,9 +111,10 @@ class ExecutionLayer:
                 "entry_odds":        entry_odds,
                 "peak_odds":         t.get("peak_odds", 0.0),
                 "stake_usdc":        stake,
-                "size":              round(stake / entry_odds, 6) if entry_odds > 0 else 0.0,
+                "size":              math.floor(stake / entry_odds) if entry_odds > 0 else 0.0,
                 "window_end":        (float(t["window_end"]) if isinstance(t.get("window_end"), (int, float)) else datetime.fromisoformat(t["window_end"]).timestamp()) if t.get("window_end") else None,
-                "confidence":        0.0,  # Legacy restored missing confidence
+                "confidence":        t.get("confidence", 0.0),  # Restore sniper mode
+                "timeframe":         t.get("timeframe", "5m"),
                 "asset":             t.get("asset", "CRYPTO"),
                 "ts_entry_raw":      ts_entry_raw,
                 # Health tracking timestamps
@@ -141,7 +143,7 @@ class ExecutionLayer:
                     win_start: float = None, condition_id: str = None,
                     asset: str = None, slug: str = None,
                     binance_price: float = None, chainlink_price_entry: float = None,
-                    chainlink_lag: float = None):
+                    chainlink_lag: float = None, timeframe: str = "5m"):
         # Backward compatibility for legacy bots (A/B)
         if not token_id:
             if direction == "long":
@@ -244,6 +246,7 @@ class ExecutionLayer:
             "asset":               asset,
             "slug":                slug,
             "confidence":          confidence,
+            "timeframe":           timeframe,
         })
 
         # Calculate position size in shares (not dollars)
@@ -263,6 +266,7 @@ class ExecutionLayer:
             "asset":             asset,
             "slug":              slug,
             "confidence":        confidence,
+            "timeframe":         timeframe,
             "ts_entry_raw":      time.time(),
             # Health tracking timestamps — initialized to now
             "last_ws_update_ts": time.time(),
@@ -431,12 +435,18 @@ class ExecutionLayer:
         if self.bot_id == "SNIPER":
             sniper_mode = pos.get("confidence", 0.0)
             secs_held   = now - pos.get("ts_entry_raw", now)
+            tf          = pos.get("timeframe", "5m")
 
             if sniper_mode == 1.0:
                 # ── Sniper 1 exits ────────────────────────────────────────────
-                tp_delta   = getattr(config, "SNIPER_1_TP_DELTA", 0.10)
-                sl_delta   = getattr(config, "SNIPER_1_SL_DELTA", 0.08)
-                time_stop  = getattr(config, "SNIPER_1_TIME_STOP_SECS", 120)
+                if tf == "15m":
+                    tp_delta   = getattr(config, "SNIPER_15M_1_TP_DELTA", 0.15)
+                    sl_delta   = getattr(config, "SNIPER_15M_1_SL_DELTA", 99.0)
+                    time_stop  = getattr(config, "SNIPER_15M_1_TIME_STOP_SECS", 600)
+                else:
+                    tp_delta   = getattr(config, "SNIPER_1_TP_DELTA", 0.10)
+                    sl_delta   = getattr(config, "SNIPER_1_SL_DELTA", 0.08)
+                    time_stop  = getattr(config, "SNIPER_1_TIME_STOP_SECS", 120)
 
                 # Take Profit: +10c
                 if current_gain >= tp_delta:
