@@ -147,7 +147,7 @@ class BotSniper(BotG):
         if in_s2_window and market_id not in self._sniper2_traded and win_key not in self._sniper2_window_traded:
             dominance = getattr(cfg, "SNIPER_2_MIN_DOMINANCE", 0.55)
             direction, trade_price, trade_token_id = self._check_dominance(
-                tid, m, yes_price, no_price, dominance, slug, confidence=2.0
+                tid, m, yes_price, no_price, dominance, slug, confidence=2.0, win_start=win_start
             )
             if direction:
                 trade_id = await self._fire_entry(
@@ -159,7 +159,7 @@ class BotSniper(BotG):
                     self._sniper2_traded[market_id] = win_end
                     self._sniper2_window_traded[win_key] = win_end
 
-    def _check_dominance(self, tid, m, yes_price, no_price, min_dominance, slug, confidence=1.0):
+    def _check_dominance(self, tid, m, yes_price, no_price, min_dominance, slug, confidence=1.0, win_start=None):
         """
         Returns (direction, trade_price, trade_token_id) if one side dominates,
         else (None, None, None).
@@ -167,7 +167,7 @@ class BotSniper(BotG):
 
         DATA-DRIVEN & QUANT FILTERS:
           - S1: Long-only filter, entry odds < 58c
-          - S2: Late window (210s+), Spot momentum confirmation via Binance, odds <= 72c
+          - S2: Near-Certain Terminal Strike-Distance filters (BTC >= $120, ETH >= $10, SOL >= $1.0)
         """
         import config as cfg
 
@@ -196,28 +196,56 @@ class BotSniper(BotG):
                 else:
                     self._log_skip(slug, "no_peer_token_mapped")
         else:
-            # ── Sniper 2 Late-Window Confirmation filters ─────────────────────
-            max_entry_odds = getattr(cfg, "SNIPER_2_MAX_ENTRY_ODDS", 0.60)
+            # ── Sniper 2 Late-Window Near-Certain Strike-Distance filters ─────
+            max_entry_odds = getattr(cfg, "SNIPER_2_MAX_ENTRY_ODDS", 0.92)
             
-            # Check YES (Long) side with Spot Momentum Confirmation
+            # Strike Distance Check
+            current_spot = self.binance.get_price(asset_symbol) if hasattr(self, "binance") else None
+            open_strike = self.binance.get_strike_open(asset_symbol, win_start) if (hasattr(self, "binance") and win_start) else None
+
+            # Fallback if open_strike not cached: try fetching from Coinbase candles
+            if current_spot and not open_strike and win_start:
+                try:
+                    import requests
+                    start_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(win_start))
+                    end_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(win_start + 300))
+                    prod = f"{asset_symbol}-USD"
+                    resp = requests.get(f"https://api.exchange.coinbase.com/products/{prod}/candles?granularity=300&start={start_iso}&end={end_iso}", timeout=3)
+                    if resp.status_code == 200 and resp.json():
+                        candle = resp.json()[0]
+                        open_strike = float(candle[3])
+                        self.binance._strike_open[(prod, int(win_start))] = open_strike
+                except Exception:
+                    pass
+
+            min_delta_map = getattr(cfg, "SNIPER_MIN_STRIKE_DELTA", {"BTC": 120.0, "ETH": 10.0, "SOL": 1.0})
+            required_delta = min_delta_map.get(asset_symbol, 1.0)
+            
+            spot_delta = (current_spot - open_strike) if (current_spot and open_strike) else 0.0
+
+            # Check YES (Long) side: spot must be significantly ABOVE strike
             if yes_price >= min_dominance:
                 if yes_price > max_entry_odds:
                     self._log_skip(slug, "s2_odds_too_high", f"yes={yes_price:.3f} > {max_entry_odds}")
                     return None, None, None
-                # DATA: Require positive spot momentum confirmation on Longs (spot must be actively moving up)
-                if mom_60s <= 0.010:
-                    self._log_skip(slug, "s2_insufficient_long_momentum", f"yes={yes_price:.3f} mom={mom_60s:.3f}%<=0.010%")
+                if open_strike and spot_delta < required_delta:
+                    self._log_skip(slug, "s2_strike_cushion_too_small_long", f"spot={current_spot:.2f} open={open_strike:.2f} delta={spot_delta:.2f} < req={required_delta:.2f}")
+                    return None, None, None
+                if mom_60s <= 0.005:
+                    self._log_skip(slug, "s2_insufficient_long_momentum", f"yes={yes_price:.3f} mom={mom_60s:.3f}%<=0.005%")
                     return None, None, None
                 return "long", yes_price, tid
 
-            # Check NO (Short) side with Spot Momentum Confirmation
+            # Check NO (Short) side: spot must be significantly BELOW strike
             if not getattr(cfg, "SNIPER_2_LONG_ONLY", False) and no_price >= min_dominance:
                 if no_price > max_entry_odds:
                     self._log_skip(slug, "s2_odds_too_high", f"no={no_price:.3f} > {max_entry_odds}")
                     return None, None, None
-                # DATA: Require negative spot momentum confirmation on Shorts (spot must be actively moving down)
-                if mom_60s >= -0.010:
-                    self._log_skip(slug, "s2_insufficient_short_momentum", f"no={no_price:.3f} mom={mom_60s:.3f}%>=-0.010%")
+                if open_strike and (-spot_delta) < required_delta:
+                    self._log_skip(slug, "s2_strike_cushion_too_small_short", f"spot={current_spot:.2f} open={open_strike:.2f} delta={spot_delta:.2f} < req={-required_delta:.2f}")
+                    return None, None, None
+                if mom_60s >= -0.005:
+                    self._log_skip(slug, "s2_insufficient_short_momentum", f"no={no_price:.3f} mom={mom_60s:.3f}%>=-0.005%")
                     return None, None, None
                 peer_id = m.get("peer_id") or self.poly.get_peer_id(tid)
                 if peer_id:

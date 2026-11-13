@@ -36,6 +36,28 @@ class BinanceFeed:
         self.products     = ["BTC-USD", "ETH-USD", "SOL-USD", "BNB-USD", "DOGE-USD", "XRP-USD", "MATIC-USD"]
         self._running     = False
         self._source      = "none"
+        self._strike_open = {}  # (symbol, win_start_ts) -> open_price
+
+    def get_strike_open(self, asset: str, win_start_ts: float) -> float | None:
+        symbol = f"{asset.upper()}-USD" if self._source == "coinbase" else f"{asset.upper()}USDT"
+        key = (symbol, int(win_start_ts))
+        if key in self._strike_open:
+            return self._strike_open[key]
+        
+        # Check in memory tick map around win_start_ts
+        ticks = self._tick_map.get(symbol)
+        if ticks:
+            # find tick closest to win_start_ts
+            candidates = [p for t, p in ticks if t >= win_start_ts and t <= win_start_ts + 15]
+            if candidates:
+                self._strike_open[key] = candidates[0]
+                return candidates[0]
+            # If after win_start, earliest tick
+            earliest = [p for t, p in ticks if t >= win_start_ts]
+            if earliest:
+                self._strike_open[key] = earliest[0]
+                return earliest[0]
+        return None
 
     def get_price(self, asset: str) -> float | None:
         return self.prices.get(f"{asset.upper()}-USD") or self.prices.get(f"{asset.upper()}USDT")
