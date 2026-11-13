@@ -18,11 +18,14 @@ from config import (
     CIRCUIT_BREAKER_ENABLED,
 )
 
+import os
+
 logger = logging.getLogger(__name__)
 
 ratchet_logger = logging.getLogger("ratchet_logger")
 ratchet_logger.setLevel(logging.INFO)
 if not ratchet_logger.handlers:
+    os.makedirs("logs", exist_ok=True)
     rfh = logging.FileHandler("logs/bot_g_ratchet.log")
     rfh.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
     ratchet_logger.addHandler(rfh)
