@@ -157,26 +157,26 @@ BOT_G_MIN_STAKE               = 1.0     # Minimum stake in USDC
 BOT_SNIPER_STRIKE_ASSETS = ["btc", "eth", "sol"]
 SNIPER_STAKE             = 1.0       # $1.00 minimum stake per trade for $2.50 bankroll
 
-# Sniper 1 — Early Momentum (Disabled to avoid low-conviction noise & early whipsaws)
-SNIPER_1_START_SECS     = 9999       # Disabled (was 15)
-SNIPER_1_END_SECS       = 60         # Stop entering at 60s elapsed
-SNIPER_1_MIN_DOMINANCE  = 0.525      # One side must be >= 52.5c (5c above midpoint)
-SNIPER_1_MAX_ENTRY_ODDS = 0.58       # DATA: only enter when YES odds < 58c (profitable subset)
-SNIPER_1_LONG_ONLY      = True       # DATA: shorts are net negative (-14.59 USDC) — longs only
-SNIPER_1_TP_DELTA       = 0.15       # +15c Take Profit
-SNIPER_1_SL_DELTA       = 99.0       # SL DISABLED — prevent 81.8% shakeout rate
-SNIPER_1_TIME_STOP_SECS = 180        # Force exit if still holding after 3 minutes
+# Sniper 1 — Early Momentum (Lead-Lag Breakout: entries between 0.52 and 0.65)
+SNIPER_1_START_SECS     = 20         # Enter after 20s as trend establishes
+SNIPER_1_END_SECS       = 90         # Window up to 90s elapsed
+SNIPER_1_MIN_DOMINANCE  = 0.525      # One side must be >= 52.5c
+SNIPER_1_MAX_ENTRY_ODDS = 0.65       # Max 0.65 (Risk $0.65 to make $0.35 = healthy 1:1.8 ratio)
+SNIPER_1_LONG_ONLY      = False      # Two-way trading on breakout momentum
+SNIPER_1_TP_DELTA       = 0.20       # +20c Take Profit target
+SNIPER_1_SL_DELTA       = 99.0       # SL DISABLED — prevent whipsaw shakeouts
+SNIPER_1_TIME_STOP_SECS = 210        # Force exit at 3.5 mins if TP not hit
 
-# Sniper 2 — Near-Certain Terminal Drift Entry (Final 60s - 30s remaining, i.e. 240s - 270s elapsed)
-# Only triggers when BTC >= $30, ETH >= $3.0, SOL >= $0.40 away from the strike open price
-SNIPER_2_START_SECS     = 240        # Active window: 240s elapsed (60s remaining)
-SNIPER_2_END_SECS       = 270        # Stop entering at 270s (30s remaining)
-SNIPER_2_MIN_DOMINANCE  = 0.55       # Dominance >= 55c
-SNIPER_2_MAX_ENTRY_ODDS = 0.92       # Near-certain discount ceiling (up to 0.92 to collect 1.00)
-SNIPER_2_LONG_ONLY      = False      # Two-way trading active; shorts & longs with momentum confirmation
-SNIPER_2_TP_DELTA       = 99.0       # Hold to 1.00 binary resolution payout
-SNIPER_2_SL_DELTA       = 99.0       # SL DISABLED — hold to full settlement, eliminating shakeouts
-SNIPER_MIN_STRIKE_DELTA = {"BTC": 30.0, "ETH": 3.0, "SOL": 0.40}
+# Sniper 2 — Mid-to-Late Trend (90s - 150s remaining, i.e. 150s - 210s elapsed)
+# At this window, odds trade realistically around 0.68 - 0.82 with valid cushions
+SNIPER_2_START_SECS     = 150        # Active window: 150s elapsed (150s remaining)
+SNIPER_2_END_SECS       = 220        # Stop entering at 220s (80s remaining)
+SNIPER_2_MIN_DOMINANCE  = 0.60       # Dominance >= 60c
+SNIPER_2_MAX_ENTRY_ODDS = 0.82       # Max entry 0.82
+SNIPER_2_LONG_ONLY      = False      # Two-way trading active
+SNIPER_2_TP_DELTA       = 99.0       # Hold to binary resolution payout
+SNIPER_2_SL_DELTA       = 99.0       # SL DISABLED
+SNIPER_MIN_STRIKE_DELTA = {"BTC": 25.0, "ETH": 2.5, "SOL": 0.35}
 
 # ── Sniper 15m — Scaled for 15-minute markets ──────────────────────────────────
 # 15m markets have 3x the duration of 5m, so entry/exit windows scale proportionally.

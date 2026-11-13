@@ -626,7 +626,9 @@ class GlobalRiskManager:
         # 5. Panic Sell (Floating Equity Crash equivalent to config Limit) -> stop systemic bleed
         panic_floor = -getattr(config, "GLOBAL_DAILY_LOSS_LIMIT", 0.25)
         STARTUP_GRACE_SECS = 60
-        if time.time() - getattr(self, '_started_at', 0) < STARTUP_GRACE_SECS:
+        if getattr(self, "paper_trading", False) or self._total_bankroll <= 20.0:
+            pass  # Micro-bankrolls ($2.50) fluctuate >100% on a single $1 position; skip false panic halts
+        elif time.time() - getattr(self, '_started_at', 0) < STARTUP_GRACE_SECS:
             pass # skip panic checks during startup
         elif equity_pct <= panic_floor:
             self.needs_liquidation = True
