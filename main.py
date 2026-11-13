@@ -170,12 +170,12 @@ class Orchestrator:
                     self._conflict_monitor(), name="conflict_monitor"
                 ))
 
-            # Auto-Redemption Loop (Live only) — claims resolved wins every 5 minutes
-            # so USDC returns to wallet before the next window opens.
-            if not PAPER_TRADING:
-                tasks.append(asyncio.create_task(
-                    self._redemption_loop(), name="redemption_loop"
-                ))
+            # Auto-Redemption / Truth Resolution Loop
+            # Resolves paper and live trades via Gamma API truth settlement,
+            # and claims on-chain USDC wins when live.
+            tasks.append(asyncio.create_task(
+                self._redemption_loop(), name="redemption_loop"
+            ))
 
             # Global Health Monitor
             tasks.append(asyncio.create_task(self._health_monitor(), name="health_monitor"))
@@ -202,11 +202,10 @@ class Orchestrator:
         from datetime import datetime
         GAMMA_API = "https://gamma-api.polymarket.com"
 
-        logger.info("[REDEEMER] Auto-redemption loop active — scanning every 5 minutes")
-        redeemer = Redeemer()
+        logger.info("[REDEEMER] Auto-redemption / settlement loop active — scanning every 60s")
+        redeemer = Redeemer() if not PAPER_TRADING else None
         while self._running:
-            # Wait ~10s after each 5m boundary to let settlements propagate
-            await asyncio.sleep(310)
+            await asyncio.sleep(60)
             try:
                 # Step 1: Query Polymarket for Truth Resolution
                 for bid, bot in self.bots.items():
@@ -230,14 +229,15 @@ class Orchestrator:
                                     down_price = float(prices[1])
                                     
                                     winner = None
-                                    if up_price == 1.0: winner = "long"
-                                    elif down_price == 1.0: winner = "short"
+                                    if up_price >= 0.98: winner = "long"
+                                    elif down_price >= 0.98: winner = "short"
                                     
                                     if winner:
                                         for t in unresolved:
                                             if t["slug"] == slug:
-                                                exit_odds = 1.0 if str(t["direction"]).lower() == winner else 0.0
-                                                bot.db.log_exit(t["id"], {
+                                                is_arb = str(t.get("direction", "")).lower() == "arb"
+                                                exit_odds = 1.0 if (is_arb or str(t["direction"]).lower() == winner) else 0.0
+                                                pnl_res = bot.db.log_exit(t["id"], {
                                                     "ts_exit": datetime.utcnow().isoformat(),
                                                     "entry_odds": t["entry_odds"],
                                                     "exit_odds": exit_odds,
@@ -246,34 +246,38 @@ class Orchestrator:
                                                     "exit_reason": "truth_settled",
                                                     "chainlink_close": 0
                                                 })
-                                                logger.info("[REDEEMER] Trade #%s Truth Settled: Resolved %s | Exit Odds: %.1f", 
-                                                            t["id"], winner.upper(), exit_odds)
+                                                net_pnl = pnl_res[0] if isinstance(pnl_res, (tuple, list)) else pnl_res
+                                                if hasattr(bot, "executor") and hasattr(bot.executor, "bankroll") and net_pnl is not None:
+                                                    bot.executor.bankroll.settle(t["stake_usdc"], net_pnl)
+                                                logger.info("[REDEEMER] Trade #%s Truth Settled: Resolved %s | Exit Odds: %.1f | PnL: %s", 
+                                                            t["id"], winner.upper(), exit_odds, net_pnl)
                                 except Exception as e:
                                     logger.error("[REDEEMER] Gamma API error for %s: %s", slug, e)
 
-                # Step 2: Proceed with Blockchain Redemption
-                total_redeemed = 0
-                for bid, bot in self.bots.items():
-                    unredeemed = bot.db.get_unredeemed_wins()
-                    if not unredeemed:
-                        continue
-                    logger.info("[REDEEMER] Bot %s: %d unredeemed wins found — redeeming...",
-                                bid, len(unredeemed))
-                    for trade in unredeemed:
-                        success = redeemer.redeem(
-                            trade["market_condition_id"],
-                            [trade["outcome_index"] + 1]  # Polymarket indexSet is 1-indexed
-                        )
-                        if success:
-                            bot.db.mark_redeemed(trade["id"])
-                            total_redeemed += 1
-                            logger.info("[REDEEMER] ✅ Redeemed trade #%s | condition=%s...",
-                                        trade['id'], trade['market_condition_id'][:12])
-                        else:
-                            logger.warning("[REDEEMER] ❌ Failed to redeem trade #%s", trade['id'])
-                if total_redeemed:
-                    logger.info("[REDEEMER] Cycle complete — %d wins redeemed, USDC returned to wallet",
-                                total_redeemed)
+                # Step 2: Proceed with Blockchain Redemption (Live only)
+                if not PAPER_TRADING and redeemer:
+                    total_redeemed = 0
+                    for bid, bot in self.bots.items():
+                        unredeemed = bot.db.get_unredeemed_wins()
+                        if not unredeemed:
+                            continue
+                        logger.info("[REDEEMER] Bot %s: %d unredeemed wins found — redeeming...",
+                                    bid, len(unredeemed))
+                        for trade in unredeemed:
+                            success = redeemer.redeem(
+                                trade["market_condition_id"],
+                                [trade["outcome_index"] + 1]  # Polymarket indexSet is 1-indexed
+                            )
+                            if success:
+                                bot.db.mark_redeemed(trade["id"])
+                                total_redeemed += 1
+                                logger.info("[REDEEMER] ✅ Redeemed trade #%s | condition=%s...",
+                                            trade['id'], trade['market_condition_id'][:12])
+                            else:
+                                logger.warning("[REDEEMER] ❌ Failed to redeem trade #%s", trade['id'])
+                    if total_redeemed:
+                        logger.info("[REDEEMER] Cycle complete — %d wins redeemed, USDC returned to wallet",
+                                    total_redeemed)
             except Exception as e:
                 logger.error("[REDEEMER] Loop error: %s", e, exc_info=True)
 

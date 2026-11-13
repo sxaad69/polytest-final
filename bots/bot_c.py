@@ -6,6 +6,7 @@ Executes simultaneous buy-both orders and holds until settlement.
 
 import asyncio
 import logging
+import math
 import time
 from datetime import datetime
 from config import (
@@ -13,6 +14,7 @@ from config import (
     MAX_BET_PCT, MIN_ODDS, MAX_ODDS, ARB_THRESHOLD,
     NO_ENTRY_LAST_SECS, BOT_C_NO_ENTRY_LAST_SECS
 )
+import config
 from bots.base_bot import BaseBot
 from signals.signal_c import BotCSignal
 from utils.pm_math import calculate_vwap
@@ -25,10 +27,10 @@ class BotC(BaseBot):
     DB_PATH           = BOT_C_DB_PATH
     STARTING_BANKROLL = BOT_C_BANKROLL
 
-    def __init__(self, binance, chainlink, poly):
-        super().__init__(binance, chainlink, poly)
+    def __init__(self, binance, chainlink, poly, wallet_address=None, polymarket_client=None):
+        super().__init__(binance, chainlink, poly, wallet_address=wallet_address, polymarket_client=polymarket_client)
         self._signal = BotCSignal(arb_threshold=ARB_THRESHOLD)
-        self.max_concurrent_trades = 4
+        self.max_concurrent_trades = 2 if not self.executor.paper_trading else 12
         self.processed_markets = {} # condition_id -> win_end
 
     async def _loop(self):
@@ -42,22 +44,18 @@ class BotC(BaseBot):
                 importlib.reload(config)
                 import fnmatch
                 
-                # 1. Define the surgical clinical filter
+                # 1. Define target markets (Focus on liquid 5m crypto and exclude sports)
                 target_markets = {}
                 for tid, m in self.poly.markets.items():
                     slug = m.get("slug", "").lower()
                     
-                    # A) Broad Keyword Noise Purge (Price Action, Binary Crypto)
-                    if any(kw in slug for kw in getattr(config, "GLOBAL_EXCLUDE_KEYWORDS", [])):
-                        continue
-                        
-                    # B) Bot C Specific: EXCLUDE Sports (violent separation)
+                    # A) Bot C Specific: EXCLUDE Sports
                     if any(fnmatch.fnmatch(slug, p) for p in getattr(config, "BOT_D_MARKET_PATTERNS", [])):
                         continue
                     
-                    # C) Bot C Specific: Global Patterns (usually '*')
+                    # B) Bot C Specific: Match crypto 5m markets or general patterns
                     is_match = False
-                    for p in getattr(config, "BOT_C_MARKET_PATTERNS", ["*"]):
+                    for p in getattr(config, "BOT_C_MARKET_PATTERNS", ["*-updown-*", "*"]):
                         if fnmatch.fnmatch(slug, p):
                             is_match = True
                             break
@@ -97,7 +95,7 @@ class BotC(BaseBot):
             except Exception as e:
                 self._log.error("Bot C loop error: %s", e, exc_info=True)
             
-            await asyncio.sleep(15) # Slower poll for Arb discovery
+            await asyncio.sleep(getattr(config, "BOT_C_POLL_INTERVAL", 3)) # Fast 3s poll for Arb discovery
 
     async def _evaluate_market(self, tid_yes: str, tid_no: str, m_yes: dict):
         m_no = self.poly.markets.get(tid_no)
@@ -108,29 +106,39 @@ class BotC(BaseBot):
         if secs_remaining < BOT_C_NO_ENTRY_LAST_SECS:
             return
 
-        # 1. Fetch deep books for both
-        await asyncio.gather(
-            self.poly.fetch_book(tid_yes),
-            self.poly.fetch_book(tid_no)
-        )
+        # 1. Canonical Pricing Engine quotes for both legs
+        quote_yes = self.poly.get_fair_price(tid_yes)
+        quote_no  = self.poly.get_fair_price(tid_no)
+        yes_price = quote_yes.get("fair_price")
+        no_price  = quote_no.get("fair_price")
 
-        # 2. Calculate Stake FIRST
-        # This fixes the depth mismatch bug
-        stake = min(self.bankroll.available * 0.10, 50.0) 
-        if stake <= 5.0: return # Polymarket min
+        if yes_price is None or no_price is None or yes_price <= 0 or no_price <= 0:
+            return
 
-        # 3. Calculate VWAP for the EXACT stake per leg
-        yes_vwap = calculate_vwap(m_yes.get("asks", []), stake/2)
-        no_vwap = calculate_vwap(m_no.get("asks", []), stake/2)
+        # 1b. LIQUID ODDS GATE: Strictly restrict to liquid band [0.20, 0.80]
+        # Rejects illiquid tail/penny traps (e.g. 0.01 / 0.88) where books are ghost quotes
+        if not (0.20 <= yes_price <= 0.80 and 0.20 <= no_price <= 0.80):
+            return
 
-        # 4. Evaluate Signal
+        # 2. Dynamic Compounding Stake (15% of bankroll, minimum $2.0 [$1/leg] for live micro-bankrolls, capped at $50.0)
+        compound_pct = getattr(config, "BOT_C_COMPOUND_PCT", 0.15)
+        max_stake    = getattr(config, "BOT_C_MAX_STAKE", 50.0)
+        min_stake    = 2.0 if (self.bankroll.available < 10.0 or not self.executor.paper_trading) else 5.0
+        stake        = round(max(min_stake, min(self.bankroll.available * compound_pct, max_stake)), 2)
+        if self.bankroll.available < stake:
+            if self.bankroll.available >= 2.0:
+                stake = 2.0
+            else:
+                return
+
+        # 3. Evaluate Signal
         market_id = m_yes.get("condition_id")
         result = self._signal.evaluate(
             market_id=market_id,
             token_yes=tid_yes,
             token_no=tid_no,
-            yes_vwap=yes_vwap,
-            no_vwap=no_vwap
+            yes_vwap=yes_price,
+            no_vwap=no_price
         )
 
         # 5. Check Global Filters
@@ -146,38 +154,77 @@ class BotC(BaseBot):
         if not passed or not result.tradeable:
             return
 
+        # 5b. PRE-TRADE ORDERBOOK DEPTH GATE:
+        # Polymarket enforces min $1.00 per order leg. Calculate integer shares required.
+        stake_per_leg = stake / 2
+        shares_yes = math.ceil(max(1.0 / yes_price, stake_per_leg / yes_price))
+        shares_no  = math.ceil(max(1.0 / no_price, stake_per_leg / no_price))
+        req_shares = max(shares_yes, shares_no)
+
+        # In live mode (or when checking liquidity), verify real resting asks on both orderbooks
+        has_depth = await self.poly.verify_arb_liquidity(tid_yes, tid_no, yes_price, no_price, float(req_shares))
+        if not has_depth:
+            self._log.debug("[BotC] Arb skipped by Depth Gate: insufficient resting ask liquidity for %s (req: %d shares)",
+                            m_yes.get("slug", market_id)[:25], req_shares)
+            return
+
         # 6. Execute Arb
-        self._log.info("[BotC] ARB FOUND | market=%s yes=%.3f no=%.3f sum=%.3f stake=%.2f",
-                       market_id[:10], yes_vwap, no_vwap, result.sum_price, stake)
+        self._log.info("[BotC] ARB CONFIRMED WITH DEPTH | market=%s yes=%.3f no=%.3f sum=%.3f stake=%.2f (shares=%d)",
+                       market_id[:10], yes_price, no_price, result.sum_price, stake, req_shares)
         
-        await self._enter_arb(tid_yes, tid_no, stake/2, yes_vwap, no_vwap, result)
+        await self._enter_arb(tid_yes, tid_no, stake/2, yes_price, no_price, result, m_yes)
         self.processed_markets[market_id] = m_yes.get("win_end", 0)
 
-    async def _enter_arb(self, tid_yes, tid_no, stake_per_leg, price_yes, price_no, result):
-        # Place both orders
-        success_yes = await self.poly.place_order("long", tid_yes, stake_per_leg, price_yes, "C", paper=self.executor.paper_trading)
-        success_no = await self.poly.place_order("long", tid_no, stake_per_leg, price_no, "C", paper=self.executor.paper_trading)
+    async def _enter_arb(self, tid_yes, tid_no, stake_per_leg, price_yes, price_no, result, m_yes):
+        # Concurrently fire both orders to guarantee simultaneous submission
+        task_yes = self.poly.place_order("long", tid_yes, stake_per_leg, price_yes, "C", paper=self.executor.paper_trading)
+        task_no  = self.poly.place_order("long", tid_no, stake_per_leg, price_no, "C", paper=self.executor.paper_trading)
+        res_yes, res_no = await asyncio.gather(task_yes, task_no, return_exceptions=True)
 
-        if success_yes.get("status") == "filled" and success_no.get("status") == "filled":
+        if isinstance(res_yes, Exception):
+            self._log.error("[BotC] Order YES threw exception: %s", res_yes)
+            res_yes = {"status": "failed", "error": str(res_yes)}
+        if isinstance(res_no, Exception):
+            self._log.error("[BotC] Order NO threw exception: %s", res_no)
+            res_no = {"status": "failed", "error": str(res_no)}
+
+        yes_filled = isinstance(res_yes, dict) and res_yes.get("status") == "filled"
+        no_filled  = isinstance(res_no, dict) and res_no.get("status") == "filled"
+
+        if yes_filled and no_filled:
             # Log as a single "arb" trade
             self.db.log_entry({
+                "signal_id": 0,
                 "ts_entry": datetime.utcnow().isoformat(),
                 "market_id": result.market_id,
                 "direction": "arb",
                 "entry_odds": result.sum_price,
                 "stake_usdc": stake_per_leg * 2,
                 "confidence_score": result.score,
+                "slug": m_yes.get("slug", result.market_id),
+                "asset": "ARB",
             })
             self.bankroll.reserve(stake_per_leg * 2)
-            self._log.info("[BotC] ARB EXECUTED | Locked in %.2f%% profit", (1.0 - result.sum_price)*100)
+            self._log.info("[BotC] ARB EXECUTED | Locked in %.2f%% profit | Total Stake: $%.2f",
+                           (1.0 - result.sum_price)*100, stake_per_leg * 2)
         else:
-            # PARTIAL FILL ROLLBACK (Crude): If one filled, try to sell it
-            if success_yes.get("status") == "filled" or success_no.get("status") == "filled":
-                self._log.critical("[BotC] PARTIAL FILL DETECTED — RISK EXPOSED")
-                # In live mode we should fire off a sell order immediately
-                # In paper mode we just log the imbalance
-                failed_leg = "NO" if success_yes.get("status") == "filled" else "YES"
-                self._log.error("[BotC] Leg 1 filled, Leg 2 (%s) failed. Trade is UNHEDGED.", failed_leg)
+            # ATOMIC ROLLBACK / EMERGENCY UNWIND:
+            # If one leg filled but the other failed FOK, IMMEDIATELY dump the filled leg at best bid
+            if yes_filled and not no_filled:
+                price_yes_safe = price_yes if price_yes > 0 else 0.50
+                shares = res_yes.get("filled_size", res_yes.get("shares", stake_per_leg / price_yes_safe))
+                self._log.critical("[BotC] ATOMIC ROLLBACK: YES filled (%.2f shares) but NO failed! Dumping YES immediately...", shares)
+                unwind_res = await self.poly.place_order("sell", tid_yes, shares, max(0.01, price_yes - 0.02), "C", paper=self.executor.paper_trading)
+                self._log.warning("[BotC] ROLLBACK COMPLETE: YES unwind status: %s", unwind_res.get("status"))
+
+            elif no_filled and not yes_filled:
+                price_no_safe = price_no if price_no > 0 else 0.50
+                shares = res_no.get("filled_size", res_no.get("shares", stake_per_leg / price_no_safe))
+                self._log.critical("[BotC] ATOMIC ROLLBACK: NO filled (%.2f shares) but YES failed! Dumping NO immediately...", shares)
+                unwind_res = await self.poly.place_order("sell", tid_no, shares, max(0.01, price_no - 0.02), "C", paper=self.executor.paper_trading)
+                self._log.warning("[BotC] ROLLBACK COMPLETE: NO unwind status: %s", unwind_res.get("status"))
+            else:
+                self._log.info("[BotC] Both FOK orders cancelled cleanly — 0 capital exposed")
 
     def evaluate_signal(self):
         # Not used by custom loop but needed for BaseBot abstract parity

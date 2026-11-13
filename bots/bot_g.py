@@ -341,47 +341,6 @@ class BotG(BaseBot):
             self._traded_markets[market_id] = win_end
 
     def _get_fair_value(self, tid: str) -> float | None:
-        """
-        Implements the Polymarket Pricing Rule:
-        - If spread <= 0.10: use Midpoint
-        - If spread > 0.10: use Last Trade Price (LTP)
-        - Fallback: Peer parity (1.0 - PeerPrice)
-        """
-        m = self.poly.markets.get(tid)
-        if not m: return None
-        
-        ltp = m.get("ltp")
-        
-        # 1. Calculate spread from orderbook
-        bids, asks = m.get("bids", []), m.get("asks", [])
-        if bids and asks:
-            best_bid = float(bids[0]["price"])
-            best_ask = float(asks[0]["price"])
-            spread = best_ask - best_bid
-            mid = (best_bid + best_ask) / 2
-            
-            if spread <= 0.10:
-                return mid
-            elif ltp:
-                return ltp
-        
-        # 2. Fallback to LTP if orderbook is too wide/missing
-        if ltp: return ltp
-        
-        # 3. Final fallback: Peer token parity
-        peer_id = m.get("peer_id")
-        if peer_id:
-            pm = self.poly.markets.get(peer_id)
-            if pm:
-                p_bids = pm.get("bids", [])
-                p_asks = pm.get("asks", [])
-                p_ltp = pm.get("ltp")
-                if p_bids and p_asks:
-                    p_spread = float(p_asks[0]["price"]) - float(p_bids[0]["price"])
-                    p_mid = (float(p_bids[0]["price"]) + float(p_asks[0]["price"])) / 2
-                    p_fair = p_mid if p_spread <= 0.10 else (p_ltp or p_mid)
-                    return round(1.0 - p_fair, 4)
-                elif p_ltp:
-                    return round(1.0 - p_ltp, 4)
-        
-        return m.get("odds")  # Last resort
+        """Delegates to the Canonical Pricing Engine in PolymarketFeed."""
+        quote = self.poly.get_fair_price(tid)
+        return quote.get("fair_price")

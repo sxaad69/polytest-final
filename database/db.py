@@ -272,19 +272,24 @@ class Database:
                     :market_condition_id, :outcome_index,
                     :clob_order_id, :token_id, :asset, :slug, :timeframe
                 )
-            """, {**t, "bot": self.bot_id,
-                  "taker_fee_bps": t.get("taker_fee_bps", 0),
-                  "chainlink_open": t.get("chainlink_open"),
-                  "binance_price": t.get("binance_price"),
-                  "chainlink_price_entry": t.get("chainlink_price_entry"),
-                  "chainlink_lag": t.get("chainlink_lag"),
-                  "market_condition_id": t.get("market_condition_id"),
-                  "outcome_index": t.get("outcome_index"),
-                  "clob_order_id": t.get("clob_order_id"),
-                  "token_id": t.get("token_id"),
-                  "asset": t.get("asset"),
-                  "slug": t.get("slug"),
-                  "timeframe": t.get("timeframe", "5m")})
+            """, {
+                "signal_id": t.get("signal_id", 0),
+                "window_start": t.get("window_start"),
+                "window_end": t.get("window_end"),
+                **t, "bot": self.bot_id,
+                "taker_fee_bps": t.get("taker_fee_bps", 0),
+                "chainlink_open": t.get("chainlink_open"),
+                "binance_price": t.get("binance_price"),
+                "chainlink_price_entry": t.get("chainlink_price_entry"),
+                "chainlink_lag": t.get("chainlink_lag"),
+                "market_condition_id": t.get("market_condition_id"),
+                "outcome_index": t.get("outcome_index"),
+                "clob_order_id": t.get("clob_order_id"),
+                "token_id": t.get("token_id"),
+                "asset": t.get("asset"),
+                "slug": t.get("slug"),
+                "timeframe": t.get("timeframe", "5m")
+            })
             return cur.lastrowid
 
     def log_exit(self, trade_id: int, e: dict) -> tuple:
@@ -501,7 +506,7 @@ class Database:
 
         PnL = net_proceeds - total_cost
         """
-        if not entry or not exit_:
+        if entry is None or exit_ is None or entry <= 0:
             return 0.0
 
         fee_rate     = taker_fee_bps / 10000

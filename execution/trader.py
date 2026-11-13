@@ -56,8 +56,15 @@ class BankrollTracker:
         self._reserved = min(self._reserved + amount, self.balance)
 
     def settle(self, stake: float, pnl: float):
+        if isinstance(pnl, (tuple, list)):
+            pnl = pnl[0]
         self._reserved = max(0.0, self._reserved - stake)
-        self.balance   = round(self.balance + pnl, 4)
+        self.balance   = round(self.balance + (pnl or 0.0), 4)
+
+    def update(self, pnl: float):
+        if isinstance(pnl, (tuple, list)):
+            pnl = pnl[0]
+        self.balance   = round(self.balance + (pnl or 0.0), 4)
 
 
 class ExecutionLayer:
@@ -158,6 +165,9 @@ class ExecutionLayer:
                 market_id  = self.poly.market_id
                 win_end    = self.poly.window_end
                 win_start  = self.poly.window_start
+            slug = getattr(self.poly, "slug", None)
+            condition_id = getattr(self.poly, "condition_id", None) or market_id
+            asset = getattr(self.poly, "asset", "BTC")
 
         # ── One position per market window (all bots) ──────────────────────────
         # Guards against double-entry on same condition regardless of direction.

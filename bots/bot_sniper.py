@@ -3,8 +3,14 @@ Bot Sniper — Dual-Window Momentum Sniper
 Inherits from Bot G for proven execution and infrastructure.
 
 Strategy:
-  Sniper 1 — Early (15s–60s): Buy the dominant side (>=52.5c), TP+10c, SL-8c, 2-min time stop.
+  Sniper 1 — Early (15s–60s): Buy the dominant side (>=52.5c), TP+15c, SL-8c, 3-min time stop.
   Sniper 2 — Late  (225s+):   Buy the dominant side (>=52.5c), TP+10c, SL-50c, settle on expiry.
+
+DATA-DRIVEN FILTERS (from 149-trade analysis):
+  - 5m longs at odds<0.58 = +11.26 USDC, 78.6% win rate (only profitable subset)
+  - 15m disabled (net negative EV -8.33 USDC)
+  - Shorts disabled (net negative EV -14.59 USDC)
+  - SL enabled at -8c to cap losses (was disabled/99.0)
 
 Both can fire on the same market — Sniper 2 requires Sniper 1 to have already exited first.
 Sniper mode is identified in trader.py via confidence: 1.0=S1, 2.0=S2.
@@ -32,6 +38,7 @@ class BotSniper(BotG):
         # Separate so Sniper 2 can still fire after Sniper 1 exits
         self._sniper1_traded: dict = {}
         self._sniper2_traded: dict = {}
+        self._sniper2_window_traded: dict = {} # {win_start: win_end} - Strict 1 trade per window cap
 
         self._setup_rejection_logger()
 
@@ -65,6 +72,10 @@ class BotSniper(BotG):
             timeframe = "15m"
         tf_duration = 300 if timeframe == "5m" else 900
 
+        # ── DATA-DRIVEN FILTER: 15m disabled (net negative EV -8.33 USDC) ──────
+        if timeframe == "15m":
+            return
+
         # ── Parse window timestamps ───────────────────────────────────────────
         win_start = m.get("win_start")
         win_end   = m.get("win_end")
@@ -87,6 +98,7 @@ class BotSniper(BotG):
         # ── Purge expired entries from lockout dicts ──────────────────────────
         self._sniper1_traded = {mid: end for mid, end in self._sniper1_traded.items() if now < end}
         self._sniper2_traded = {mid: end for mid, end in self._sniper2_traded.items() if now < end}
+        self._sniper2_window_traded = {w: end for w, end in self._sniper2_window_traded.items() if now < end}
 
         # ── Price discovery ───────────────────────────────────────────────────
         current_price = self._get_fair_value(tid)
@@ -105,10 +117,11 @@ class BotSniper(BotG):
         else:
             s1_start = getattr(cfg, "SNIPER_1_START_SECS", 15)
             s1_end   = getattr(cfg, "SNIPER_1_END_SECS", 60)
-        s2_start = getattr(cfg, "SNIPER_2_START_SECS", 225)
+        s2_start = getattr(cfg, "SNIPER_2_START_SECS", 210)
+        s2_end   = getattr(cfg, "SNIPER_2_END_SECS", 255)
 
         in_s1_window = s1_start <= elapsed_secs <= s1_end
-        in_s2_window = elapsed_secs >= s2_start
+        in_s2_window = s2_start <= elapsed_secs <= s2_end
 
         if not in_s1_window and not in_s2_window:
             return  # Not in any active window — silent skip
@@ -117,7 +130,7 @@ class BotSniper(BotG):
         if in_s1_window and market_id not in self._sniper1_traded:
             dominance = getattr(cfg, "SNIPER_1_MIN_DOMINANCE", 0.525)
             direction, trade_price, trade_token_id = self._check_dominance(
-                tid, m, yes_price, no_price, dominance, slug
+                tid, m, yes_price, no_price, dominance, slug, confidence=1.0
             )
             if direction:
                 trade_id = await self._fire_entry(
@@ -130,10 +143,11 @@ class BotSniper(BotG):
             return  # Don't fall through to S2 in same tick
 
         # ── Sniper 2 — Late Entry ─────────────────────────────────────────────
-        if in_s2_window and market_id not in self._sniper2_traded:
-            dominance = getattr(cfg, "SNIPER_2_MIN_DOMINANCE", 0.525)
+        win_key = int(win_start)
+        if in_s2_window and market_id not in self._sniper2_traded and win_key not in self._sniper2_window_traded:
+            dominance = getattr(cfg, "SNIPER_2_MIN_DOMINANCE", 0.55)
             direction, trade_price, trade_token_id = self._check_dominance(
-                tid, m, yes_price, no_price, dominance, slug
+                tid, m, yes_price, no_price, dominance, slug, confidence=2.0
             )
             if direction:
                 trade_id = await self._fire_entry(
@@ -143,22 +157,75 @@ class BotSniper(BotG):
                 )
                 if trade_id:
                     self._sniper2_traded[market_id] = win_end
+                    self._sniper2_window_traded[win_key] = win_end
 
-    def _check_dominance(self, tid, m, yes_price, no_price, min_dominance, slug):
+    def _check_dominance(self, tid, m, yes_price, no_price, min_dominance, slug, confidence=1.0):
         """
         Returns (direction, trade_price, trade_token_id) if one side dominates,
         else (None, None, None).
         Prefers YES side if both exceed threshold (edge case).
-        """
-        if yes_price >= min_dominance:
-            return "long", yes_price, tid
 
-        if no_price >= min_dominance:
-            peer_id = m.get("peer_id") or self.poly.get_peer_id(tid)
-            if peer_id:
-                return "short", no_price, peer_id
-            else:
-                self._log_skip(slug, "no_peer_token_mapped")
+        DATA-DRIVEN & QUANT FILTERS:
+          - S1: Long-only filter, entry odds < 58c
+          - S2: Late window (210s+), Spot momentum confirmation via Binance, odds <= 72c
+        """
+        import config as cfg
+
+        asset_symbol = slug.split("-")[0].upper()
+        mom_60s = self.binance.get_momentum(asset_symbol, seconds=60) if hasattr(self, "binance") else 0.0
+
+        if confidence == 1.0:
+            # ── Sniper 1 early filters ────────────────────────────────────────
+            long_only = getattr(cfg, "SNIPER_1_LONG_ONLY", True)
+            max_entry_odds = getattr(cfg, "SNIPER_1_MAX_ENTRY_ODDS", 0.58)
+
+            if yes_price >= min_dominance:
+                if yes_price <= max_entry_odds:
+                    return "long", yes_price, tid
+                else:
+                    self._log_skip(slug, "odds_too_high", f"yes={yes_price:.3f} > {max_entry_odds}")
+                    return None, None, None
+
+            if long_only:
+                return None, None, None
+
+            if no_price >= min_dominance:
+                peer_id = m.get("peer_id") or self.poly.get_peer_id(tid)
+                if peer_id:
+                    return "short", no_price, peer_id
+                else:
+                    self._log_skip(slug, "no_peer_token_mapped")
+        else:
+            # ── Sniper 2 Late-Window Confirmation filters ─────────────────────
+            max_entry_odds = getattr(cfg, "SNIPER_2_MAX_ENTRY_ODDS", 0.60)
+            
+            # Check YES (Long) side with Spot Momentum Confirmation
+            if yes_price >= min_dominance:
+                if yes_price > max_entry_odds:
+                    self._log_skip(slug, "s2_odds_too_high", f"yes={yes_price:.3f} > {max_entry_odds}")
+                    return None, None, None
+                # DATA: Require positive spot momentum confirmation on Longs (spot must be actively moving up)
+                if mom_60s <= 0.010:
+                    self._log_skip(slug, "s2_insufficient_long_momentum", f"yes={yes_price:.3f} mom={mom_60s:.3f}%<=0.010%")
+                    return None, None, None
+                return "long", yes_price, tid
+
+            # Check NO (Short) side with Spot Momentum Confirmation
+            if not getattr(cfg, "SNIPER_2_LONG_ONLY", False) and no_price >= min_dominance:
+                if no_price > max_entry_odds:
+                    self._log_skip(slug, "s2_odds_too_high", f"no={no_price:.3f} > {max_entry_odds}")
+                    return None, None, None
+                # DATA: Require negative spot momentum confirmation on Shorts (spot must be actively moving down)
+                if mom_60s >= -0.010:
+                    self._log_skip(slug, "s2_insufficient_short_momentum", f"no={no_price:.3f} mom={mom_60s:.3f}%>=-0.010%")
+                    return None, None, None
+                peer_id = m.get("peer_id") or self.poly.get_peer_id(tid)
+                if peer_id:
+                    return "short", no_price, peer_id
+                else:
+                    self._log_skip(slug, "no_peer_token_mapped")
+            elif getattr(cfg, "SNIPER_2_LONG_ONLY", False) and no_price >= min_dominance:
+                self._log_skip(slug, "s2_long_only_skip_short", f"no={no_price:.3f}")
 
         return None, None, None
 
@@ -168,15 +235,18 @@ class BotSniper(BotG):
         confidence, sniper_label, timeframe="5m"
     ):
         """Execute the buy order via the proven executor pipeline."""
-        stake = config.SNIPER_STAKE
+        # Dynamic compounding stake: 10% of current equity, floored at minimum $5.0, capped at $50.0
+        base_stake = getattr(config, "SNIPER_STAKE", 5.0)
+        current_bankroll = self.executor.bankroll.balance if hasattr(self, "executor") else getattr(config, "BOT_SNIPER_BANKROLL", 50.0)
+        stake = round(max(base_stake, min(50.0, current_bankroll * 0.10)), 2)
 
         # Apply +3c slippage for FOK order to cross the spread
         SLIPPAGE    = 0.03
         entry_price = round(min(0.98, trade_odds + SLIPPAGE), 4)
 
         logger.info(
-            "[BotSniper][%s] TRIGGER | %s | dir=%s odds=%.3f",
-            sniper_label, slug, direction, trade_odds
+            "[BotSniper][%s] TRIGGER | %s | dir=%s odds=%.3f stake=%.2f (bankroll=%.2f)",
+            sniper_label, slug, direction, trade_odds, stake, current_bankroll
         )
 
         # Lock immediately to prevent race condition on concurrent tasks

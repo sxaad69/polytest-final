@@ -80,11 +80,13 @@ class PolymarketFeed:
 
     @property
     def up_odds(self): 
-        return self.markets.get(self._default_up_id, {}).get("odds")
+        quote = self.get_fair_price(self._default_up_id)
+        return quote.get("fair_price") or self.markets.get(self._default_up_id, {}).get("odds")
 
     @property
     def down_odds(self):
-        return self.markets.get(self._default_down_id, {}).get("odds")
+        quote = self.get_fair_price(self._default_down_id)
+        return quote.get("fair_price") or self.markets.get(self._default_down_id, {}).get("odds")
 
     @property
     def window_start(self): return self._default_window["start"]
@@ -103,6 +105,136 @@ class PolymarketFeed:
     @property
     def market_id(self):
         return self.markets.get(self._default_up_id, {}).get("condition_id")
+
+    @property
+    def slug(self):
+        return self.markets.get(self._default_up_id, {}).get("slug")
+
+    def get_fair_price(self, token_id: str) -> dict:
+        """
+        Universal Canonical Pricing Engine for all bots.
+        
+        Returns:
+            {
+                "fair_price": float,       # Canonical fair value (0.0 to 1.0)
+                "complement_price": float, # 1.0 - fair_price
+                "best_bid": float | None,
+                "best_ask": float | None,
+                "spread": float | None,
+                "source": str,             # "orderbook_mid", "ltp", "peer_parity", "ws_odds"
+                "confidence": float,
+                "is_liquid": bool
+            }
+        """
+        m = self.markets.get(token_id)
+        if not m:
+            return {
+                "fair_price": None,
+                "complement_price": None,
+                "best_bid": None,
+                "best_ask": None,
+                "spread": None,
+                "source": "not_found",
+                "confidence": 0.0,
+                "is_liquid": False,
+            }
+
+        bids = m.get("bids", [])
+        asks = m.get("asks", [])
+        ltp  = m.get("ltp")
+        odds = m.get("odds")
+
+        best_bid = float(bids[0]["price"]) if bids and float(bids[0].get("price", 0)) > 0 else None
+        best_ask = float(asks[0]["price"]) if asks and float(asks[0].get("price", 0)) > 0 else None
+        spread   = round(best_ask - best_bid, 4) if (best_bid is not None and best_ask is not None) else None
+
+        # 1. Tight Orderbook Midpoint (Clean book)
+        if spread is not None and 0.0 <= spread <= 0.10:
+            mid = round((best_bid + best_ask) / 2.0, 4)
+            return {
+                "fair_price": mid,
+                "complement_price": round(1.0 - mid, 4),
+                "best_bid": best_bid,
+                "best_ask": best_ask,
+                "spread": spread,
+                "source": "orderbook_mid",
+                "confidence": 1.0,
+                "is_liquid": True,
+            }
+
+        # 2. Last Trade Price (Reality check for wide/phantom book)
+        if ltp is not None and 0.0 < ltp < 1.0:
+            return {
+                "fair_price": round(ltp, 4),
+                "complement_price": round(1.0 - ltp, 4),
+                "best_bid": best_bid,
+                "best_ask": best_ask,
+                "spread": spread,
+                "source": "ltp",
+                "confidence": 0.95,
+                "is_liquid": True,
+            }
+
+        # 3. Peer Parity Fallback (Mirror token)
+        peer_id = m.get("peer_id")
+        if peer_id and peer_id in self.markets:
+            pm = self.markets[peer_id]
+            p_bids = pm.get("bids", [])
+            p_asks = pm.get("asks", [])
+            p_ltp  = pm.get("ltp")
+            p_bid  = float(p_bids[0]["price"]) if p_bids and float(p_bids[0].get("price", 0)) > 0 else None
+            p_ask  = float(p_asks[0]["price"]) if p_asks and float(p_asks[0].get("price", 0)) > 0 else None
+            p_spr  = round(p_ask - p_bid, 4) if (p_bid is not None and p_ask is not None) else None
+
+            if p_spr is not None and 0.0 <= p_spr <= 0.10:
+                p_mid = (p_bid + p_ask) / 2.0
+                fair = round(1.0 - p_mid, 4)
+                return {
+                    "fair_price": fair,
+                    "complement_price": round(1.0 - fair, 4),
+                    "best_bid": best_bid,
+                    "best_ask": best_ask,
+                    "spread": spread,
+                    "source": "peer_parity_mid",
+                    "confidence": 0.90,
+                    "is_liquid": True,
+                }
+            elif p_ltp is not None and 0.0 < p_ltp < 1.0:
+                fair = round(1.0 - p_ltp, 4)
+                return {
+                    "fair_price": fair,
+                    "complement_price": round(1.0 - fair, 4),
+                    "best_bid": best_bid,
+                    "best_ask": best_ask,
+                    "spread": spread,
+                    "source": "peer_parity_ltp",
+                    "confidence": 0.88,
+                    "is_liquid": True,
+                }
+
+        # 4. Gamma / WebSocket Odds fallback
+        if odds is not None and 0.0 < odds < 1.0:
+            return {
+                "fair_price": round(odds, 4),
+                "complement_price": round(1.0 - odds, 4),
+                "best_bid": best_bid,
+                "best_ask": best_ask,
+                "spread": spread,
+                "source": "ws_odds",
+                "confidence": 0.80,
+                "is_liquid": False,
+            }
+
+        return {
+            "fair_price": None,
+            "complement_price": None,
+            "best_bid": best_bid,
+            "best_ask": best_ask,
+            "spread": spread,
+            "source": "unresolved",
+            "confidence": 0.0,
+            "is_liquid": False,
+        }
 
     async def start_discovery(self, interval: int = 60):
         """Background loop to discover all active markets efficiently.
@@ -360,6 +492,13 @@ class PolymarketFeed:
             self.markets[tid]["win_start"] = win_start
             self.markets[tid]["win_end"]   = win_end
             self.markets[tid]["condition_id"] = condition_id
+
+        # Keep legacy Bot A/B pointed at active BTC 5m window
+        now_ts = time.time()
+        if "btc-updown-5m-" in slug and win_start <= now_ts < win_end:
+            self._default_up_id = tid_up
+            self._default_down_id = tid_down
+            self._default_window = {"start": win_start, "end": win_end}
         return True
 
     def _extract_condition_id(self, m: dict) -> str | None:
@@ -472,6 +611,42 @@ class PolymarketFeed:
         except Exception as e:
             logger.debug("fetch_book error: %s", e)
 
+    def get_resting_ask_depth(self, token_id: str, max_price: float) -> float:
+        """Calculates cumulative resting ask shares available at or below max_price."""
+        m = self.markets.get(token_id)
+        if not m:
+            return 0.0
+        asks = m.get("asks", [])
+        total_shares = 0.0
+        for ask in asks:
+            try:
+                p = float(ask.get("price", 1.0))
+                s = float(ask.get("size", 0.0))
+                if p <= max_price + 0.005:
+                    total_shares += s
+            except Exception:
+                continue
+        return total_shares
+
+    async def verify_arb_liquidity(self, tid_yes: str, tid_no: str, price_yes: float, price_no: float, required_shares: float) -> bool:
+        """Fetches fresh orderbooks and verifies BOTH sides have resting ask depth >= required_shares."""
+        try:
+            if not self._session or self._session.closed:
+                self._session = aiohttp.ClientSession()
+            await asyncio.gather(self.fetch_book(tid_yes), self.fetch_book(tid_no), return_exceptions=True)
+            depth_yes = self.get_resting_ask_depth(tid_yes, price_yes)
+            depth_no  = self.get_resting_ask_depth(tid_no, price_no)
+            if depth_yes < required_shares or depth_no < required_shares:
+                logger.debug(
+                    "[LIQUIDITY GATE] Insufficient resting depth: YES=%.2f (need %.2f @ %.3f) | NO=%.2f (need %.2f @ %.3f)",
+                    depth_yes, required_shares, price_yes, depth_no, required_shares, price_no
+                )
+                return False
+            return True
+        except Exception as e:
+            logger.warning("[LIQUIDITY GATE] Verification exception: %s", e)
+            return False
+
     # ── WebSocket odds stream ──────────────────────────────────────────────────
 
     async def start_odds_stream(self):
@@ -481,6 +656,7 @@ class PolymarketFeed:
         self._last_heartbeat = time.time()
         self._msg_count = 0
         
+        _reconnect_delay = 5.0
         while self._running:
             try:
                 now = time.time()
@@ -495,13 +671,19 @@ class PolymarketFeed:
                 if not self._ws:
                     print(">>> FEED DEBUG: Calling _ws_connect()")
                     await self._ws_connect()
+                    if not self._ws:
+                        await asyncio.sleep(_reconnect_delay)
+                        _reconnect_delay = min(30.0, _reconnect_delay * 1.5)
+                        continue
+                    else:
+                        _reconnect_delay = 5.0
                 else:
                     await self.resubscribe()
             except Exception as e:
                 print(f">>> FEED CRASH: {e}")
                 logger.error("WebSocket main loop error: %s", e)
             
-            await asyncio.sleep(2)
+            await asyncio.sleep(3)
 
     async def _ws_connect(self):
         """Dedicated connection logic with diagnostic prints."""
@@ -954,41 +1136,64 @@ class PolymarketFeed:
                 resp = sell_resp
 
             else:
-                # ── BUY: FOK limit order with slippage buffer ──────────────
+                # ── BUY: FOK limit order ──────────────────────────────────
                 # Polymarket enforces min $1 per order.
-                # Calculate shares so that shares * buy_price >= $1.
                 MIN_ORDER_USDC = 1.00
-                buy_price_slip = min(0.99, round(round((rounded_price + 0.08) / 0.01) * 0.01, 4))
-                min_shares_for_dollar = math.ceil(MIN_ORDER_USDC / buy_price_slip * 10) / 10
-                # size passed in is USDC stake — convert to integer shares
-                # math.floor ensures integer × 2dp_price = always ≤ 2dp USDC (maker limit)
-                shares_from_stake = math.floor(size / rounded_price)
-                shares = max(min_shares_for_dollar, shares_from_stake)
 
-                buy_resp = None
-                for attempt, slip in enumerate([0.08, 0.15]):
-                    buy_price = min(0.99, round(round((rounded_price + slip) / 0.01) * 0.01, 4))
-                    buy_args  = OrderArgsV2(
+                if rounded_price <= 0.001:
+                    logger.warning("[LIVE Bot%s] BUY skipped — price %.3f too low/zero", bot_id, rounded_price)
+                    return {"status": "failed", "reason": "invalid_zero_price"}
+
+                if bot_id == "C":
+                    # Bot C ARBITRAGE: STRICT ZERO SLIPPAGE
+                    # Integer shares guarantees maker amount (shares * 2dp_price) <= 2 decimal places.
+                    buy_price = rounded_price
+                    shares = int(math.ceil(max(MIN_ORDER_USDC / buy_price, size / buy_price)))
+                    buy_args = OrderArgsV2(
                         token_id = token_id,
                         price    = buy_price,
-                        size     = shares,
+                        size     = float(shares),
                         side     = "BUY",
                     )
                     try:
                         signed_buy = client.create_order(buy_args)
-                        buy_resp   = client.post_order(signed_buy, OrderType.FOK)
-                        if buy_resp and buy_resp.get("success"):
-                            break
-                        logger.warning(
-                            "[LIVE Bot%s] BUY attempt %d rejected (slip=%.2f): %s",
-                            bot_id, attempt + 1, slip, buy_resp
-                        )
+                        resp = client.post_order(signed_buy, OrderType.FOK)
+                        if not (resp and resp.get("success")):
+                            logger.warning("[LIVE BotC] Arb BUY FOK unfilled at exact price %.3f: %s", buy_price, resp)
                     except Exception as fok_err:
-                        logger.warning(
-                            "[LIVE Bot%s] BUY FOK killed attempt %d (slip=%.2f): %s",
-                            bot_id, attempt + 1, slip, fok_err
+                        logger.warning("[LIVE BotC] Arb BUY FOK killed at exact price %.3f: %s", buy_price, fok_err)
+                        resp = {"status": "failed", "reason": str(fok_err)}
+                else:
+                    # Directional bots: allow slippage buffer
+                    buy_price_slip = min(0.99, round(round((rounded_price + 0.08) / 0.01) * 0.01, 4))
+                    min_shares_for_dollar = math.ceil(MIN_ORDER_USDC / buy_price_slip * 10) / 10
+                    shares_from_stake = math.floor(size / rounded_price)
+                    shares = max(min_shares_for_dollar, shares_from_stake)
+
+                    buy_resp = None
+                    for attempt, slip in enumerate([0.08, 0.15]):
+                        buy_price = min(0.99, round(round((rounded_price + slip) / 0.01) * 0.01, 4))
+                        buy_args  = OrderArgsV2(
+                            token_id = token_id,
+                            price    = buy_price,
+                            size     = shares,
+                            side     = "BUY",
                         )
-                resp = buy_resp
+                        try:
+                            signed_buy = client.create_order(buy_args)
+                            buy_resp   = client.post_order(signed_buy, OrderType.FOK)
+                            if buy_resp and buy_resp.get("success"):
+                                break
+                            logger.warning(
+                                "[LIVE Bot%s] BUY attempt %d rejected (slip=%.2f): %s",
+                                bot_id, attempt + 1, slip, buy_resp
+                            )
+                        except Exception as fok_err:
+                            logger.warning(
+                                "[LIVE Bot%s] BUY FOK killed attempt %d (slip=%.2f): %s",
+                                bot_id, attempt + 1, slip, fok_err
+                            )
+                    resp = buy_resp
 
             if resp and resp.get("success"):
                 # Use makingAmount (USDC spent) / takingAmount (shares received)

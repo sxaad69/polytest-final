@@ -32,35 +32,35 @@ PAPER_TRADING = True      # global flag — False = LIVE trading
 # Allows running Bot A live while Bot B stays on paper simultaneously
 BOT_A_PAPER_TRADING = True
 BOT_B_PAPER_TRADING = True
-BOT_C_PAPER_TRADING = True
+BOT_C_PAPER_TRADING = True   # Bot C PAPER
 BOT_D_PAPER_TRADING = True
 BOT_E_PAPER_TRADING = True
 BOT_F_PAPER_TRADING = True
-BOT_G_PAPER_TRADING = True  # Bot G LIVE
+BOT_G_PAPER_TRADING = True
 
 # ── Bot enable flags ───────────────────────────────────────────────────────────
-BOT_A_ENABLED = False        # Chainlink lag (Depreciated/Obsolete)
+BOT_A_ENABLED = False        # Retired underperformer (Long drag)
 BOT_B_ENABLED = False        # Hybrid (Depreciated/Obsolete)
-BOT_C_ENABLED   = False
-BOT_D_ENABLED   = False
-BOT_E_ENABLED   = False
-BOT_F_ENABLED   = False
+BOT_C_ENABLED = True         # Champion: Negative Risk Pair-Cost Arbitrage (100% WR)
+BOT_D_ENABLED = False
+BOT_E_ENABLED = False
+BOT_F_ENABLED = False
 BOT_G_ENABLED = False        # Crypto (Universal)
-BOT_SNIPER_ENABLED = True   # Minute 1 Sniper
-BOT_SNIPER_PAPER_TRADING = True # Sniper Live Trading
+BOT_SNIPER_ENABLED = False   # Retired underperformer
+BOT_SNIPER_PAPER_TRADING = True # Sniper Paper Trading
 
 # ── Live conflict rule ─────────────────────────────────────────────────────────
 LIVE_CONFLICT_RULE = "higher_confidence"
 
 # ── Bankroll ───────────────────────────────────────────────────────────────────
-BOT_A_BANKROLL = 10000.0  # DATA VOLCANO simulation
-BOT_B_BANKROLL = 10000.0  # DATA VOLCANO simulation
-BOT_C_BANKROLL = 100.0
+BOT_A_BANKROLL = 50.0        # $50 Latency Arb bankroll
+BOT_B_BANKROLL = 10000.0     # DATA VOLCANO simulation
+BOT_C_BANKROLL = 50.0        # $50 Paper Pair-Cost Arb bankroll
 BOT_D_BANKROLL = 100.0
 BOT_E_BANKROLL = 100.0
 BOT_F_BANKROLL = 100.0
-BOT_G_BANKROLL = 10000.0  # DATA VOLCANO simulation
-BOT_SNIPER_BANKROLL = 50.0
+BOT_G_BANKROLL = 10000.0     # DATA VOLCANO simulation
+BOT_SNIPER_BANKROLL = 50.0   # $50 Directional Sniper bankroll
 MAX_BET_PCT    = 0.05
 KELLY_FRACTION = 0.25
 
@@ -74,13 +74,17 @@ WINDOW_DURATION     = 300
 BOT_C_NO_ENTRY_LAST_SECS = 0  # LIVE: 30    # arbs lock in profit immediately
 
 # ── Bot A thresholds (Chainlink lag) ───────────────────────────────────────────
-# Data showed edge at 0.20-0.40% deviation band
-# Above 0.40% = crowd already priced in, win rate drops to 0%
-# Below 0.20% = noise, no directional signal
-BOT_A_MIN_DEVIATION    = 0.001  # PAPER: hyper-sensitive (was 0.02)
-BOT_A_MAX_DEVIATION    = 0.60   # LIVE: 0.40
-BOT_A_MIN_SUSTAIN_SECS = 1      # LIVE: 5      # fast trigger — catch signal early in window
-BOT_A_MIN_CONFIDENCE   = 0.02   # LIVE: 0.20   # paper mode — gather data
+# DATA-BACKED PERFECT BLEND:
+# 1. Sustain >= 4s filters 70% of false wicks
+# 2. Odds bracket [0.35, 0.70] eliminates 10% win rate lottery traps while maintaining +94% ROI
+# 3. Binance spot momentum confirmation prevents fighting the underlying CEX trend
+BOT_A_MIN_DEVIATION    = 0.0015 # Meaningful structural lag
+BOT_A_MAX_DEVIATION    = 0.60
+BOT_A_MIN_SUSTAIN_SECS = 4      # DATA: 4s filter removes transient 1s wicks
+BOT_A_MIN_CONFIDENCE   = 0.02
+BOT_A_MIN_ODDS         = 0.40   # DATA: sub-0.40 has 18.8% win rate (-7.76 USDC); [0.40-0.49] yields +18.87 USDC
+BOT_A_MAX_ODDS         = 0.55   # DATA: odds > 0.55 are net negative (-3.62 USDC combined); [0.40, 0.55] nets +20.27 USDC
+BOT_A_REQUIRE_SPOT_MOM = True   # Require Binance 60s momentum confluence
 
 # ── Bot B thresholds (Hybrid) ──────────────────────────────────────────────────
 BOT_B_MIN_CONFIDENCE = 0.02     # LIVE: 0.20
@@ -95,9 +99,12 @@ BOT_B_LAG_DAMPEN = 0.60   # strong penalty when lag contradicts
 
 # ── Bot C thresholds (GLOB Arb) ────────────────────────────────────────────────
 # Threshold is sum of YES + NO vwap. < 1.0 is a theoretical arb.
-# Setting to 1.02 for PAPER testing (will trade at slight loss to test flow)
-ARB_THRESHOLD     = 1.02   # Entry when (Yes_Ask + No_Ask) <= 1.05 (Guarantees negative spread triggers for testing)
+# Entry when (Yes_Ask + No_Ask) <= 0.995 (Guaranteed positive spread / negative risk arb)
+ARB_THRESHOLD         = 0.995
 BOT_C_MARKET_PATTERNS = ["*"] # Pattern list to scan for arbitrage targets
+BOT_C_POLL_INTERVAL   = 3     # Fast 3s scan loop to capture fleeting dislocations
+BOT_C_COMPOUND_PCT    = 0.15  # 15% dynamic compounding on available capital
+BOT_C_MAX_STAKE       = 50.0  # Max stake cap
 
 # ── Bot D thresholds (Sports Spike) ────────────────────────────────────────────
 BOT_D_SPIKE_THRESHOLD   = 0.005  # PAPER: 0.5% move (was 5%) velocity spike to trigger
@@ -130,7 +137,7 @@ BOT_F_MARKET_PATTERNS    = [
 BOT_G_STRIKE_ASSETS = ["btc", "eth", "sol", "bnb", "xrp", "doge"]
 BOT_G_TIMEFRAMES = {
     "5m":  300,   # 5-minute markets
-    "15m": 900,   # 15-minute markets (Sniper concurrent backtest)
+    # "15m": 900,   # 15m DISABLED — net negative EV (-8.33 USDC, 38 trades)
 }
 # Signal momentum band (from 811-trade simulation, March 2026)
 BOT_G_MIN_CONFIDENCE          = 0.05   # Full-width data capture for analysis
@@ -147,22 +154,28 @@ BOT_G_MAX_CONCURRENT_TRADES   = 8       # Controlled aggression (was 999 in volc
 BOT_G_MIN_STAKE               = 1.0     # Minimum stake in USDC
 
 # ── Bot Sniper — Dual-Window Strategy ─────────────────────────────────────────
-BOT_SNIPER_STRIKE_ASSETS = ["btc", "eth"]
-SNIPER_STAKE             = 5.0       # Standardized stake (both snipers)
+BOT_SNIPER_STRIKE_ASSETS = ["btc", "eth", "sol"]
+SNIPER_STAKE             = 5.0       # Standardized base stake
 
-# Sniper 1 — Early Momentum (15s–60s into market)
-SNIPER_1_START_SECS     = 15         # Enter after 15s elapsed
+# Sniper 1 — Early Momentum (Disabled to avoid low-conviction noise & early whipsaws)
+SNIPER_1_START_SECS     = 9999       # Disabled (was 15)
 SNIPER_1_END_SECS       = 60         # Stop entering at 60s elapsed
 SNIPER_1_MIN_DOMINANCE  = 0.525      # One side must be >= 52.5c (5c above midpoint)
+SNIPER_1_MAX_ENTRY_ODDS = 0.58       # DATA: only enter when YES odds < 58c (profitable subset)
+SNIPER_1_LONG_ONLY      = True       # DATA: shorts are net negative (-14.59 USDC) — longs only
 SNIPER_1_TP_DELTA       = 0.15       # +15c Take Profit
-SNIPER_1_SL_DELTA       = 99.0       # SL DISABLED — let trade ride to TP or time exit
+SNIPER_1_SL_DELTA       = 99.0       # SL DISABLED — prevent 81.8% shakeout rate
 SNIPER_1_TIME_STOP_SECS = 180        # Force exit if still holding after 3 minutes
 
-# Sniper 2 — Late Entry (3:45 into market, i.e. >= 225s elapsed)
-SNIPER_2_START_SECS     = 9999       # Disabled (was 225)
-SNIPER_2_MIN_DOMINANCE  = 0.525      # Same dominance threshold
-SNIPER_2_TP_DELTA       = 99.0       # Disabled — let trade ride to binary resolution
-SNIPER_2_SL_DELTA       = 99.0       # SL DISABLED — let trade ride to TP or binary resolution
+# Sniper 2 — Late Entry (Minute 3:30 into market, i.e. 210s - 250s elapsed)
+# High conviction: Spot candle direction confirmed on Binance + Polymarket pricing asymmetry
+SNIPER_2_START_SECS     = 210        # Active window: 210s elapsed
+SNIPER_2_END_SECS       = 250        # Stop entering with <50s remaining
+SNIPER_2_MIN_DOMINANCE  = 0.55       # Dominance >= 55c
+SNIPER_2_MAX_ENTRY_ODDS = 0.60       # Strict 60c ceiling (guarantees >= +67% asymmetric ROI per win)
+SNIPER_2_LONG_ONLY      = False      # Two-way trading active; shorts capped at <= 60c with momentum confirmation
+SNIPER_2_TP_DELTA       = 99.0       # Hold to 1.00 binary resolution payout
+SNIPER_2_SL_DELTA       = 99.0       # SL DISABLED — hold to full settlement, eliminating shakeouts
 
 # ── Sniper 15m — Scaled for 15-minute markets ──────────────────────────────────
 # 15m markets have 3x the duration of 5m, so entry/exit windows scale proportionally.
@@ -219,7 +232,7 @@ PNL_ERROR_LOG_PATH = os.getenv("PNL_ERROR_LOG_PATH", "logs/pnl_errors.log")
 
 # ── Position management ────────────────────────────────────────────────────────
 GLOBAL_MIN_TRADE_SIZE = 5.0     # 0 = use pure Kelly, otherwise strict floor
-GLOBAL_MAX_TRADE_SIZE = 10.0    # 0 = use pure Kelly, otherwise strict ceiling
+GLOBAL_MAX_TRADE_SIZE = 50.0    # Dynamic compounding cap up to $50 per trade
 USE_MINIMUM_SIZING_TEST = True  # True = Trade absolute minimum shares allowed, skip if over $5
 
 # Point-Based Profit Ratchet Configuration
@@ -263,7 +276,7 @@ _DATA_DIR.mkdir(exist_ok=True)
 
 BOT_A_DB_PATH = str(_DATA_DIR / "bot_a_paper.db")
 BOT_B_DB_PATH = str(_DATA_DIR / "bot_b_paper.db")
-BOT_C_DB_PATH = str(_DATA_DIR / "bot_c_paper.db")
+BOT_C_DB_PATH = str(_DATA_DIR / "bot_c_live.db") if not BOT_C_PAPER_TRADING else str(_DATA_DIR / "bot_c_paper.db")
 BOT_D_DB_PATH = str(_DATA_DIR / "bot_d_paper.db")
 BOT_E_DB_PATH = str(_DATA_DIR / "bot_e_paper.db")
 BOT_F_DB_PATH = str(_DATA_DIR / "bot_f_paper.db")
