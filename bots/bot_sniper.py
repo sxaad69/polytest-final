@@ -235,10 +235,13 @@ class BotSniper(BotG):
         confidence, sniper_label, timeframe="5m"
     ):
         """Execute the buy order via the proven executor pipeline."""
-        # Dynamic compounding stake: 10% of current equity, floored at minimum $5.0, capped at $50.0
-        base_stake = getattr(config, "SNIPER_STAKE", 5.0)
-        current_bankroll = self.executor.bankroll.balance if hasattr(self, "executor") else getattr(config, "BOT_SNIPER_BANKROLL", 50.0)
-        stake = round(max(base_stake, min(50.0, current_bankroll * 0.10)), 2)
+        # Dynamic compounding stake: min $1.00 for micro-bankroll ($2.50)
+        base_stake = getattr(config, "SNIPER_STAKE", 1.0)
+        current_bankroll = self.executor.bankroll.balance if hasattr(self, "executor") else getattr(config, "BOT_SNIPER_BANKROLL", 2.50)
+        stake = round(max(1.0, min(current_bankroll, base_stake)), 2)
+        if current_bankroll < 1.0:
+            logger.warning("[BotSniper] Bankroll too low to trade: %.2f", current_bankroll)
+            return None
 
         # Apply +3c slippage for FOK order to cross the spread
         SLIPPAGE    = 0.03

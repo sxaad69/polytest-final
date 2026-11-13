@@ -41,12 +41,12 @@ BOT_G_PAPER_TRADING = True
 # ── Bot enable flags ───────────────────────────────────────────────────────────
 BOT_A_ENABLED = False        # Retired underperformer (Long drag)
 BOT_B_ENABLED = False        # Hybrid (Depreciated/Obsolete)
-BOT_C_ENABLED = True         # Champion: Negative Risk Pair-Cost Arbitrage (100% WR)
+BOT_C_ENABLED = False        # Retired pair-cost arb (resting dual ask <= 0.985 doesn't occur)
 BOT_D_ENABLED = False
 BOT_E_ENABLED = False
 BOT_F_ENABLED = False
 BOT_G_ENABLED = False        # Crypto (Universal)
-BOT_SNIPER_ENABLED = False   # Retired underperformer
+BOT_SNIPER_ENABLED = True    # Active Terminal Sniper Engine
 BOT_SNIPER_PAPER_TRADING = True # Sniper Paper Trading
 
 # ── Live conflict rule ─────────────────────────────────────────────────────────
@@ -60,7 +60,7 @@ BOT_D_BANKROLL = 100.0
 BOT_E_BANKROLL = 100.0
 BOT_F_BANKROLL = 100.0
 BOT_G_BANKROLL = 10000.0     # DATA VOLCANO simulation
-BOT_SNIPER_BANKROLL = 50.0   # $50 Directional Sniper bankroll
+BOT_SNIPER_BANKROLL = 2.50   # Micro-bankroll simulation ($2.50)
 MAX_BET_PCT    = 0.05
 KELLY_FRACTION = 0.25
 
@@ -155,7 +155,7 @@ BOT_G_MIN_STAKE               = 1.0     # Minimum stake in USDC
 
 # ── Bot Sniper — Dual-Window Strategy ─────────────────────────────────────────
 BOT_SNIPER_STRIKE_ASSETS = ["btc", "eth", "sol"]
-SNIPER_STAKE             = 5.0       # Standardized base stake
+SNIPER_STAKE             = 1.0       # $1.00 minimum stake per trade for $2.50 bankroll
 
 # Sniper 1 — Early Momentum (Disabled to avoid low-conviction noise & early whipsaws)
 SNIPER_1_START_SECS     = 9999       # Disabled (was 15)
@@ -167,13 +167,13 @@ SNIPER_1_TP_DELTA       = 0.15       # +15c Take Profit
 SNIPER_1_SL_DELTA       = 99.0       # SL DISABLED — prevent 81.8% shakeout rate
 SNIPER_1_TIME_STOP_SECS = 180        # Force exit if still holding after 3 minutes
 
-# Sniper 2 — Late Entry (Minute 3:30 into market, i.e. 210s - 250s elapsed)
-# High conviction: Spot candle direction confirmed on Binance + Polymarket pricing asymmetry
-SNIPER_2_START_SECS     = 210        # Active window: 210s elapsed
-SNIPER_2_END_SECS       = 250        # Stop entering with <50s remaining
+# Sniper 2 — Terminal Drift Entry (Final 90s - 30s remaining, i.e. 210s - 270s elapsed)
+# High conviction: Spot candle trend established on Binance + Polymarket pricing discount
+SNIPER_2_START_SECS     = 210        # Active window: 210s elapsed (90s remaining)
+SNIPER_2_END_SECS       = 270        # Stop entering at 270s (30s remaining)
 SNIPER_2_MIN_DOMINANCE  = 0.55       # Dominance >= 55c
-SNIPER_2_MAX_ENTRY_ODDS = 0.60       # Strict 60c ceiling (guarantees >= +67% asymmetric ROI per win)
-SNIPER_2_LONG_ONLY      = False      # Two-way trading active; shorts capped at <= 60c with momentum confirmation
+SNIPER_2_MAX_ENTRY_ODDS = 0.88       # Terminal discount ceiling (up to 88c to collect 1.00 at resolution)
+SNIPER_2_LONG_ONLY      = False      # Two-way trading active; shorts & longs with momentum confirmation
 SNIPER_2_TP_DELTA       = 99.0       # Hold to 1.00 binary resolution payout
 SNIPER_2_SL_DELTA       = 99.0       # SL DISABLED — hold to full settlement, eliminating shakeouts
 
