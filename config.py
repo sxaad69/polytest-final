@@ -168,15 +168,15 @@ SNIPER_1_SL_DELTA       = 99.0       # SL DISABLED — prevent 81.8% shakeout ra
 SNIPER_1_TIME_STOP_SECS = 180        # Force exit if still holding after 3 minutes
 
 # Sniper 2 — Near-Certain Terminal Drift Entry (Final 60s - 30s remaining, i.e. 240s - 270s elapsed)
-# Only triggers when BTC >= $120, ETH >= $10, SOL >= $1.00 away from the strike open price
+# Only triggers when BTC >= $30, ETH >= $3.0, SOL >= $0.40 away from the strike open price
 SNIPER_2_START_SECS     = 240        # Active window: 240s elapsed (60s remaining)
 SNIPER_2_END_SECS       = 270        # Stop entering at 270s (30s remaining)
 SNIPER_2_MIN_DOMINANCE  = 0.55       # Dominance >= 55c
-SNIPER_2_MAX_ENTRY_ODDS = 0.92       # Near-certain discount ceiling (0.85 - 0.92 to collect 1.00)
+SNIPER_2_MAX_ENTRY_ODDS = 0.92       # Near-certain discount ceiling (up to 0.92 to collect 1.00)
 SNIPER_2_LONG_ONLY      = False      # Two-way trading active; shorts & longs with momentum confirmation
 SNIPER_2_TP_DELTA       = 99.0       # Hold to 1.00 binary resolution payout
 SNIPER_2_SL_DELTA       = 99.0       # SL DISABLED — hold to full settlement, eliminating shakeouts
-SNIPER_MIN_STRIKE_DELTA = {"BTC": 120.0, "ETH": 10.0, "SOL": 1.0}
+SNIPER_MIN_STRIKE_DELTA = {"BTC": 30.0, "ETH": 3.0, "SOL": 0.40}
 
 # ── Sniper 15m — Scaled for 15-minute markets ──────────────────────────────────
 # 15m markets have 3x the duration of 5m, so entry/exit windows scale proportionally.
