@@ -165,7 +165,7 @@ SNIPER_1_MIN_DOMINANCE  = 0.54       # Clear directional edge >= 54c
 SNIPER_1_MAX_ENTRY_ODDS = 0.68       # Max 0.68 entry (Risk $0.68 to make $0.32 = healthy EV, no blowout risk)
 SNIPER_1_LONG_ONLY      = False      # Two-way trading on breakout momentum
 SNIPER_1_TP_DELTA       = 0.18       # +18c Take Profit target (e.g. 0.56 -> 0.74 lock-in)
-SNIPER_1_SL_DELTA       = 99.0       # SL DISABLED — hold to TP or resolution
+SNIPER_1_SL_DELTA       = 0.14       # -14c Stop Loss: Cuts failed breakouts at -14c loss, preventing 100% wipeouts
 SNIPER_1_TIME_STOP_SECS = 240        # Force exit at 4.0 mins if TP not hit
 
 # Sniper 2 — Late High-Odds Sniping (DISABLED — negative EV, asymmetric 9:1 blowout risk)
