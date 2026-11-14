@@ -190,11 +190,15 @@ class BotSniper(BotG):
                 return None, None, None
 
             if no_price >= min_dominance:
-                peer_id = m.get("peer_id") or self.poly.get_peer_id(tid)
-                if peer_id:
-                    return "short", no_price, peer_id
+                if no_price <= max_entry_odds:
+                    peer_id = m.get("peer_id") or self.poly.get_peer_id(tid)
+                    if peer_id:
+                        return "short", no_price, peer_id
+                    else:
+                        self._log_skip(slug, "no_peer_token_mapped")
                 else:
-                    self._log_skip(slug, "no_peer_token_mapped")
+                    self._log_skip(slug, "odds_too_high", f"no={no_price:.3f} > {max_entry_odds}")
+                    return None, None, None
         else:
             # ── Sniper 2 Late-Window Near-Certain Strike-Distance filters ─────
             max_entry_odds = getattr(cfg, "SNIPER_2_MAX_ENTRY_ODDS", 0.92)
