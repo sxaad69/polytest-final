@@ -269,9 +269,10 @@ class BotSniper(BotG):
         """Execute the buy order via the proven executor pipeline."""
         # Dynamic compounding stake: min $1.00 for micro-bankroll ($2.50)
         base_stake = getattr(config, "SNIPER_STAKE", 1.0)
+        is_paper = getattr(config, "BOT_SNIPER_PAPER_TRADING", False) or getattr(self.executor, "paper", False)
         current_bankroll = self.executor.bankroll.balance if hasattr(self, "executor") else getattr(config, "BOT_SNIPER_BANKROLL", 2.50)
         stake = round(max(1.0, min(current_bankroll, base_stake)), 2)
-        if current_bankroll < 1.0:
+        if current_bankroll < 1.0 and not is_paper:
             logger.warning("[BotSniper] Bankroll too low to trade: %.2f", current_bankroll)
             return None
 
