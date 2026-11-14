@@ -590,7 +590,9 @@ class GlobalRiskManager:
         equity_pct = (total_equity - self._total_bankroll) / max(self._total_bankroll, 1)
         
         # 3. Maximum Loss Trigger (The 6-Hour Rule)
-        if loss_pct >= self.daily_loss_limit:
+        if (getattr(self, "paper_trading", False) or self._total_bankroll <= 20.0):
+            pass # Micro-bankrolls / paper testing should not trigger legacy 6-hour database locks
+        elif loss_pct >= self.daily_loss_limit:
             lock_minutes = getattr(config, "GLOBAL_HALT_DURATION_MINUTES", 6.0)
             resume_ts = time.time() + (lock_minutes * 60)
             
