@@ -652,23 +652,7 @@ class ExecutionLayer:
         
         current_attempts = self._exit_attempts.get(trade_key := f"{trade_id}_{reason}", 0)
         
-        # Verify balance is available before attempting sell
-        # This prevents false "balance: 0" API errors
-        try:
-            if hasattr(self, 'global_risk') and self.global_risk and self.global_risk.polymarket_client:
-                balance = self.global_risk.polymarket_client.get_wallet_balance()
-            else:
-                balance = 999.0
-            if balance < 1.0:  # Less than $1 available
-                logger.warning(
-                    "[Bot%s] EXIT DELAYED | id=%s reason=%s | Low balance: $%.2f | Retrying in 10s",
-                    self.bot_id, trade_id, reason, balance
-                )
-                # Don't increment attempt counter for API errors
-                await asyncio.sleep(10)
-                return False
-        except Exception as e:
-            logger.debug("[Bot%s] Balance check failed: %s", self.bot_id, e)
+        # Sells do not consume collateral balance; they liquidate shares back to collateral!
         # 1. Determine EXACT share amount to sell
         sell_shares = pos["size"]
         if not self.paper_trading and hasattr(self, 'global_risk') and self.global_risk and getattr(self.global_risk, 'polymarket_client', None):
