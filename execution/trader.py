@@ -81,6 +81,7 @@ class ExecutionLayer:
         self.paper_trading     = paper_trading
         self._positions: dict  = {}
         self._post_exit_positions: dict = {}  # Closed trades still within market window
+        self._entry_lock       = asyncio.Lock()
         self._load_positions()
 
     def _load_positions(self):
@@ -169,29 +170,36 @@ class ExecutionLayer:
             condition_id = getattr(self.poly, "condition_id", None) or market_id
             asset = getattr(self.poly, "asset", "BTC")
 
-        # ── One position per market window (all bots) ──────────────────────────
-        # Guards against double-entry on same condition regardless of direction.
-        # Uses market_id (condition_id) as the dedup key.
-        if market_id:
-            for pos in self._positions.values():
-                if pos.get("market_id") == market_id:
-                    logger.debug("[Bot%s] Already in market %s — skipping", self.bot_id, market_id[:12])
+        async with self._entry_lock:
+            # ── Concurrency check: enforce 1 position max for SNIPER in live mode ──
+            if not self.paper_trading and len(self._positions) >= 1:
+                logger.info("[Bot%s] LIVE Concurrency guard: %d position active, skipping %s",
+                            self.bot_id, len(self._positions), slug or market_id)
+                return None
+
+            # ── One position per market window (all bots) ──────────────────────────
+            # Guards against double-entry on same condition regardless of direction.
+            # Uses market_id (condition_id) as the dedup key.
+            if market_id:
+                for pos in self._positions.values():
+                    if pos.get("market_id") == market_id:
+                        logger.debug("[Bot%s] Already in market %s — skipping", self.bot_id, market_id[:12])
+                        return None
+
+            # Global risk gate
+            if hasattr(self, "global_risk") and self.global_risk:
+                passed, reason = self.global_risk.can_enter(stake, token_id, market_id)
+                if not passed:
+                    import logging
+                    logging.getLogger(f"bot_{self.bot_id.lower()}").warning(
+                        "Global Risk Manager skipped trade: %s", reason
+                    )
+                    self.db.log_skip(reason, confidence, entry_odds or 0.0, market_id)
                     return None
 
-        # Global risk gate
-        if hasattr(self, "global_risk") and self.global_risk:
-            passed, reason = self.global_risk.can_enter(stake, token_id, market_id)
-            if not passed:
-                import logging
-                logging.getLogger(f"bot_{self.bot_id.lower()}").warning(
-                    "Global Risk Manager skipped trade: %s", reason
-                )
-                self.db.log_skip(reason, confidence, entry_odds or 0.0, market_id)
-                return
-
-        if not entry_odds or not token_id:
-            logger.warning("[Bot%s] No odds/token — skipping entry", self.bot_id)
-            return None
+            if not entry_odds or not token_id:
+                logger.warning("[Bot%s] No odds/token — skipping entry", self.bot_id)
+                return None
 
         import config
         if getattr(config, "USE_MINIMUM_SIZING_TEST", False):
