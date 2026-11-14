@@ -179,7 +179,9 @@ class BotSniper(BotG):
             long_only = getattr(cfg, "SNIPER_1_LONG_ONLY", True)
             max_entry_odds = getattr(cfg, "SNIPER_1_MAX_ENTRY_ODDS", 0.58)
 
-            if yes_price >= min_dominance:
+            # Strict directional momentum filter: spot must be actively moving in the direction of trade
+            MIN_MOM = 0.005 # 0.5% move over 60s
+            if yes_price >= min_dominance and mom_60s > MIN_MOM:
                 if yes_price <= max_entry_odds:
                     return "long", yes_price, tid
                 else:
@@ -189,7 +191,7 @@ class BotSniper(BotG):
             if long_only:
                 return None, None, None
 
-            if no_price >= min_dominance:
+            if no_price >= min_dominance and mom_60s < -MIN_MOM:
                 if no_price <= max_entry_odds:
                     peer_id = m.get("peer_id") or self.poly.get_peer_id(tid)
                     if peer_id:
