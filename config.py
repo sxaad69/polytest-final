@@ -26,7 +26,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ── Mode ───────────────────────────────────────────────────────────────────────
-PAPER_TRADING = True      # global flag — False = LIVE trading
+PAPER_TRADING = False     # global flag — False = LIVE trading
 
 # ── Per-bot paper/live mode ────────────────────────────────────────────────────
 # Allows running Bot A live while Bot B stays on paper simultaneously
@@ -47,7 +47,7 @@ BOT_E_ENABLED = False
 BOT_F_ENABLED = False
 BOT_G_ENABLED = False        # Crypto (Universal)
 BOT_SNIPER_ENABLED = True    # Active Terminal Sniper Engine
-BOT_SNIPER_PAPER_TRADING = True # Sniper Paper Trading
+BOT_SNIPER_PAPER_TRADING = False # LIVE TRADING ACTIVE
 
 # ── Live conflict rule ─────────────────────────────────────────────────────────
 LIVE_CONFLICT_RULE = "higher_confidence"
@@ -60,7 +60,7 @@ BOT_D_BANKROLL = 100.0
 BOT_E_BANKROLL = 100.0
 BOT_F_BANKROLL = 100.0
 BOT_G_BANKROLL = 10000.0     # DATA VOLCANO simulation
-BOT_SNIPER_BANKROLL = 2.50   # Micro-bankroll simulation ($2.50)
+BOT_SNIPER_BANKROLL = 7.64   # Live Safe Bankroll ($7.64 pUSD)
 MAX_BET_PCT    = 0.05
 KELLY_FRACTION = 0.25
 

@@ -33,6 +33,7 @@ class BotSniper(BotG):
     def __init__(self, binance, chainlink, poly, wallet_address=None, polymarket_client=None):
         super().__init__(binance, chainlink, poly, wallet_address=wallet_address, polymarket_client=polymarket_client)
         self.strike_assets = config.BOT_SNIPER_STRIKE_ASSETS
+        self.max_concurrent_trades = 1  # Strict single-position guardrail for live trading
 
         # Per-sniper lockout dicts: {market_id: win_end}
         # Separate so Sniper 2 can still fire after Sniper 1 exits
